@@ -1,4 +1,5 @@
 import datetime
+import json
 import random
 import time
 
@@ -10,19 +11,23 @@ class EasyMoney:
     fundrank_url = 'http://fund.eastmoney.com/data/fundranking.html'
     driver = Chrome()
     year = datetime.datetime.now().year
+    funds = []
 
     def __init__(self):
         self.get_cookie(self.fundrank_url)
 
     def get_cookie(self, url):
         self.driver.get(url)
-        html = self.driver.page_source
         next_btn_xpath = self.element_is_exist()
+        self.parse_html(self.driver.page_source)
         while next_btn_xpath:
             self.driver.find_element_by_xpath(next_btn_xpath).click()
             time.sleep(random.randint(4, 10))
             self.parse_html(self.driver.page_source)
             next_btn_xpath = self.element_is_exist()
+        with open("D:\\funds.json") as f:
+            f.write(json.dumps({'fund': self.funds}))
+            f.close()
 
     def element_is_exist(self):
         next_btn_xpath = '//*[@id="pagebar"]/label[8]'
@@ -89,7 +94,7 @@ class EasyMoney:
             fund['this_year'] = self.to_float(tds[15].string)
             fund['since_founded'] = self.to_float(tds[16].string)
             fund['handling_fee'] = self.to_float(tds[18].string)
-            print(fund)
+            self.funds.append(fund)
 
 
 if __name__ == '__main__':
