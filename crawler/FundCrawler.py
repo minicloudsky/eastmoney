@@ -26,6 +26,7 @@ class EastMoneyFund:
         self.get_fund(self.fundrank_url)
 
     def get_fund(self, url):
+        print("Start crawl easymoney fund .")
         self.driver.get(url)
         next_btn_xpath = self.element_is_exist()
         time.sleep(random.randint(4, 10))
@@ -35,6 +36,8 @@ class EastMoneyFund:
             time.sleep(random.randint(4, 10))
             self.parse_html(self.driver.page_source)
             next_btn_xpath = self.element_is_exist()
+        self.drver.close()
+        print("Crawl eastmoney fund finished .")
 
     def element_is_exist(self):
         next_btn_xpath = '//*[@id="pagebar"]/label[8]'
@@ -75,6 +78,18 @@ class EastMoneyFund:
             val = -9999
         return val
 
+    # 日期时间转换，将 09-17 转为 2020-09-17
+    def format_datetime(self, val):
+        try:
+            val = str(self.year) + "-" + val
+            val = datetime.datetime.strptime(
+                val, '%Y-%m-%d')
+            return val
+        except Exception as e:
+            val = str(datetime.datetime.now())
+            print("format date error {}".format(e))
+            return val
+
     def parse_html(self, html):
         soup = BeautifulSoup(html, 'lxml')
         table = soup.find_all(id='dbtable')
@@ -89,10 +104,7 @@ class EastMoneyFund:
             fund['fund_code'] = tds[2].a.string
             fund['fund_name'] = tds[3].a.attrs['title'] if tds[3].a.attrs['title'] else ''
             fund['fund_short_name'] = tds[3].a.string if tds[3].a.string else ''
-            fund['update_date'] = str(self.year) + \
-                "-" + tds[4].string if tds[4] else ''
-            fund['update_date'] = datetime.datetime.strptime(
-                fund['update_date'], '%Y-%m-%d')
+            fund['update_date'] = self.format_datetime(tds[4].string)
             fund['unit_net_worth'] = self.to_float(tds[5].string)
             fund['cumulative_net_worth'] = self.to_float(tds[6].string)
             fund['daily'] = self.to_float(tds[7].string)
@@ -106,7 +118,6 @@ class EastMoneyFund:
             fund['this_year'] = self.to_float(tds[15].string)
             fund['since_founded'] = self.to_float(tds[16].string)
             fund['handling_fee'] = self.to_float(tds[18].string)
-            # print(fund)
             Fund.objects.create(**fund)
 
 
