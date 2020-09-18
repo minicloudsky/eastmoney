@@ -3,6 +3,8 @@ import datetime
 import requests
 
 import execjs
+
+
 # 东方财富基金
 
 
@@ -27,7 +29,11 @@ class EastMoneyFund:
                        '&pi=1&pn=50000&dx=1&v=0.8119929489462407 '.format(yesterday, yesterday)
         print(fundrank_url)
         response = requests.get(fundrank_url, headers=headers)
-        print(response.text)
+        js = response.text.encode('utf-8').decode('gbk', 'replace').encode('gbk', 'ignore').decode('gbk', 'ignore')
+        js = "function f(){" + js + "return rankData;" + "}"
+        js_func = execjs.compile(js)
+        fund_data = js_func.call('f')
+        print(fund_data)
 
     def to_int(self, val):
         try:

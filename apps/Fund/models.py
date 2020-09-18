@@ -28,3 +28,13 @@ class Fund(models.Model):
 
     def __str__(self):
         return self.fund_name
+
+    class Meta:
+        # 添加唯一索引约束，防止每天同一个基金被爬取多次
+        unique_together = ('fund_url', 'fund_code', 'fund_name', 'update_date')
+
+
+class FundLog(models.Model):
+    start_time = models.DateTimeField('开始时间')
+    end_time = models.DateTimeField('结束时间')
+    total_fund = models.PositiveIntegerField('基金总数', default=0)
