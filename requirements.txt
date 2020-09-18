@@ -18,11 +18,13 @@ pickleshare==0.7.5
 prompt-toolkit==3.0.7
 ptyprocess==0.6.0
 pycodestyle==2.6.0
+PyExecJS==1.5.1
 Pygments==2.7.1
 PyMySQL==0.10.1
 pytz==2020.1
 requests==2.24.0
 selenium==3.141.0
+six==1.15.0
 soupsieve==2.0.1
 sqlparse==0.3.1
 toml==0.10.1

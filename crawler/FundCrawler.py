@@ -36,7 +36,7 @@ class EastMoneyFund:
             time.sleep(random.randint(4, 10))
             self.parse_html(self.driver.page_source)
             next_btn_xpath = self.element_is_exist()
-        self.drver.close()
+        self.driver.close()
         print("Crawl eastmoney fund finished .")
 
     def element_is_exist(self):
@@ -44,11 +44,13 @@ class EastMoneyFund:
         backup_next_btn_xpath = '//*[@id="pagebar"]/label[9]'
         try:
             element = self.driver.find_element_by_xpath(next_btn_xpath)
+            print("element {} element.text {}".format(element, element.text))
             if element and element.text == '下一页':
                 return next_btn_xpath
             else:
                 element = self.driver.find_element_by_xpath(
                     backup_next_btn_xpath)
+                print("element {} element.text {}".format(element, element.text))
                 if element and element.text == '下一页':
                     return backup_next_btn_xpath
             return None
@@ -81,10 +83,11 @@ class EastMoneyFund:
     # 日期时间转换，将 09-17 转为 2020-09-17
     def format_datetime(self, val):
         try:
-            val = str(self.year) + "-" + val
-            val = datetime.datetime.strptime(
-                val, '%Y-%m-%d')
-            return val
+            if val:
+                val = str(self.year) + "-" + val
+                val = datetime.datetime.strptime(val, '%Y-%m-%d')
+                return val
+            return str(datetime.datetime.now())
         except Exception as e:
             val = str(datetime.datetime.now())
             print("format date error {}".format(e))
@@ -118,7 +121,14 @@ class EastMoneyFund:
             fund['this_year'] = self.to_float(tds[15].string)
             fund['since_founded'] = self.to_float(tds[16].string)
             fund['handling_fee'] = self.to_float(tds[18].string)
-            Fund.objects.create(**fund)
+            is_exist = Fund.objects.filter(update_date=fund['update_date'],
+                                           fund_code=fund['fund_code'],
+                                           fund_url=fund['fund_url'],
+                                           fund_name=fund['fund_name']).first()
+            if not is_exist:
+                Fund.objects.create(**fund)
+            else:
+                print(self.driver.current_url)
 
 
 if __name__ == '__main__':
