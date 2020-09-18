@@ -6,6 +6,4 @@ cd $PROJECT_PATH
 source venv/bin/activate
 pip install -r requirements.txt
 
-python $PROJECT_PATH/manage.py makemigrations
-python $PROJECT_PATH/manage.py migrate
-python $PROJECT_PATH/manage.py collectstatic
+nohup python $PROJECT_PATH/run_spider.py >> nohup.out & 

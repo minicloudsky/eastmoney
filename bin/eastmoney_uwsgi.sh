@@ -7,7 +7,7 @@ PIDFILE=$PROJECT_PATH/uwsgi/uwsgi.pid
 STATUS_FILE=$PROJECT_PATH/uwsgi/uwsgi.status
 DAEMONIZE_FILE=$PROJECT_PATH/uwsgi/$NAME.log
 # shellcheck disable=SC2164
-cd PROJECT_PATH
+cd $PROJECT_PATH
 source venv/bin/activate
 pip install -r requirements.txt
 
