@@ -6,7 +6,7 @@ from django.db import models
 
 class Fund(models.Model):
     fund_url = models.CharField('基金链接', max_length=300, default='')
-    fund_code = models.CharField('基金代码', default='', max_length=20)
+    fund_code = models.CharField('基金代码', default='', max_length=20, db_index=True)
     fund_name = models.CharField('基金名称', max_length=200, default='')
     fund_short_name = models.CharField('基金简称', max_length=200, default='')
     update_date = models.DateField('当前日期')
