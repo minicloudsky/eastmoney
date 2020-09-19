@@ -1,39 +1,40 @@
-import datetime
-
+from datetime import datetime
 import requests
-
-import execjs
+from urllib.parse import urlencode
 
 
 # 东方财富基金
 
 
 class EastMoneyFund:
-    def __init__(self):
-        self.get_fund()
+    nodejs_server_url = 'http://127.0.0.1:3000?type='
+    date = datetime.strftime(datetime.now(), '%Y-%m-%d')
+    max_size = 999999999999
+    max_fund_num = 100000
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
+        'Referer': "http://fund.eastmoney.com/data/diyfundranking.html",
+        'Host': "fund.eastmoney.com",
+    }
 
-    def get_fund(self):
-        headers = {
-            'Host': 'fund.eastmoney.com',
-            'Referer': 'http://fund.eastmoney.com/data/fundranking.html',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36',
-        }
-        year = str(datetime.datetime.now().year)
-        month = str(datetime.datetime.now().month)
-        # 因为基金收益大部分晚上更新，这里爬取前一天的已经更新的收益
-        day = str(datetime.datetime.now().day - 1)
-        yesterday = "{}-{}-{}".format(year, month, day)
-        fundrank_url = 'http://fund.eastmoney.com/data/rankhandler.aspx?' \
-                       'op=ph&dt=kf&ft=all&rs=&gs=0&sc=zzf&st=desc&sd' \
-                       '={}&ed={}&qdii=&tabSubtype=,,,,,' \
-                       '&pi=1&pn=50000&dx=1&v=0.8119929489462407 '.format(yesterday, yesterday)
-        print(fundrank_url)
-        response = requests.get(fundrank_url, headers=headers)
-        js = response.text.encode('utf-8').decode('gbk', 'replace').encode('gbk', 'ignore').decode('gbk', 'ignore')
-        js = "function f(){" + js + "return rankData;" + "}"
-        js_func = execjs.compile(js)
-        fund_data = js_func.call('f')
-        print(fund_data)
+    def __init__(self):
+        # self.parse_fund_ranking()
+        self.parse_diy_fund_ranking()
+
+    def parse_fund_ranking(self):
+        url = self.nodejs_server_url + "fund_ranking"
+        print(url)
+        response = requests.get(url)
+        print(response.json())
+
+    def parse_diy_fund_ranking(self):
+        url = self.nodejs_server_url + "diy_fund_ranking"
+        print(url)
+        response = requests.get(url)
+        print(response.json())
+
+    def get_history_net_worth(self, fund_code):
+        data = []
 
     def to_int(self, val):
         try:

@@ -9,7 +9,7 @@ class Fund(models.Model):
     fund_code = models.CharField('基金代码', default='', max_length=20)
     fund_name = models.CharField('基金名称', max_length=200, default='')
     fund_short_name = models.CharField('基金简称', max_length=200, default='')
-    update_date = models.DateTimeField('当前日期')
+    update_date = models.DateField('当前日期')
     unit_net_worth = models.FloatField('单位净值', default=0)
     cumulative_net_worth = models.FloatField('累计净值', default=0)
     daily = models.FloatField('日涨跌幅', default=0)
