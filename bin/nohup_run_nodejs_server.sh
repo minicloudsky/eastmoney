@@ -5,4 +5,4 @@ PROJECT_PATH=/home/.jywcode/EastMoneySpider/crawler_nodejs
 cd $PROJECT_PATH
 npm install
 
-nohup node  $PROJECT_PATH/index.js  >> nohup.out & 
+nohup node  $PROJECT_PATH/index.js  > nohup.out & 
