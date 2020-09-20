@@ -233,8 +233,7 @@ class EastMoneyFund:
                         datetime.now(), fund_code, kwargs))
                     pass
         FundHistoricalNetWorthRanking.objects.bulk_create(fund_history_object_list)
-
-    logger.info("thread {} {} crawl history net worth complete.".format(threading.currentThread(), datetime.now()))
+        logger.info("thread {} {} crawl history net worth complete.".format(threading.currentThread(), datetime.now()))
 
     def get_fund_company(self):
         logger.info("{} start crawl fund company .".format(datetime.now()))
