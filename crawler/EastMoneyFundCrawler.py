@@ -1,8 +1,9 @@
-import json
-from datetime import datetime
-import requests
-from urllib.parse import urlencode
 import logging
+from datetime import datetime
+from urllib.parse import urlencode
+
+import requests
+
 from apps.Fund.models import FundHistoricalNetWorthRanking, FundLog, Fund
 
 logger = logging.getLogger("easymoneyfundcrawler")
@@ -12,16 +13,19 @@ logger = logging.getLogger("easymoneyfundcrawler")
 class EastMoneyFund:
     nodejs_server_url = 'http://127.0.0.1:3000?type='
     date = datetime.strftime(datetime.now(), '%Y-%m-%d')
-    max_size = 999999999999
+    max_size = 50 * 365
     max_fund_num = 100000
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
         'Referer': "http://fund.eastmoney.com/data/diyfundranking.html",
         'Host': "fund.eastmoney.com",
+        'Cookie': 'em_hq_fls=js; qgqp_b_id=9715e29311d3fc5888ee05d9afbfcb92; AUTH_FUND.EASTMONEY.COM_GSJZ=AUTH*TTJJ*TOKEN; waptgshowtime=2020917; st_si=25027075577965; ASP.NET_SessionId=t1vuewxy0cbz5wgyu2adoib5; HAList=a-sz-002127-%u5357%u6781%u7535%u5546%2Cd-hk-06862%2Ca-sz-000066-%u4E2D%u56FD%u957F%u57CE%2Cf-0-399006-%u521B%u4E1A%u677F%u6307; cowCookie=true; intellpositionL=1215.35px; st_asi=delete; intellpositionT=499.8px; searchbar_code=320007; EMFUND1=09-19%2013%3A04%3A14@%23%24%u9E4F%u626C%u5229%u6CA3%u77ED%u503AE@%23%24006831; EMFUND0=09-19%2001%3A35%3A46@%23%24%u5609%u5B9E%u589E%u957F%u6DF7%u5408@%23%24070002; EMFUND2=09-19%2013%3A42%3A08@%23%24%u519C%u94F6%u65B0%u80FD%u6E90%u4E3B%u9898@%23%24002190; EMFUND3=09-19%2016%3A40%3A24@%23%24%u94F6%u6CB3%u521B%u65B0%u6210%u957F%u6DF7%u5408@%23%24519674; EMFUND4=09-19%2016%3A50%3A54@%23%24%u4E2D%u878D%u4EA7%u4E1A%u5347%u7EA7%u6DF7%u5408@%23%24001701; EMFUND5=09-19%2022%3A34%3A36@%23%24%u5357%u534E%u745E%u626C%u7EAF%u503AC@%23%24005048; EMFUND6=09-19%2021%3A51%3A18@%23%24%u5DE5%u94F6%u65B0%u8D8B%u52BF%u7075%u6D3B%u914D%u7F6E%u6DF7%u5408A@%23%24001716; EMFUND7=09-19%2022%3A36%3A19@%23%24%u534E%u5B89%u521B%u4E1A%u677F50%u6307%u6570%u5206%u7EA7B@%23%24150304; EMFUND9=09-20%2010%3A03%3A59@%23%24%u8BFA%u5B89%u6210%u957F%u6DF7%u5408@%23%24320007; EMFUND8=09-20 10:24:15@#$%u5B89%u4FE1%u6C11%u7A33%u589E%u957F%u6DF7%u5408C@%23%24008810; st_pvi=58947008966039; st_sp=2020-07-25%2000%3A32%3A56; st_inirUrl=https%3A%2F%2Fwww.eastmoney.com%2F; st_sn=294; st_psi=20200920102414487-0-3267835636',
     }
+    # history_net_worth_url = 'http://api.fund.eastmoney.com/f10/lsjz?callback=jQuery18306004163724110205_1600526195568&fundCode=150304&pageIndex=61&pageSize=20&startDate=&endDate=&_=1600569328705'
+    history_net_worth_url = 'http://api.fund.eastmoney.com/f10/lsjz?'
 
     def __init__(self):
-        # self.parse_fund_ranking()
+        self.parse_fund_ranking()
         self.parse_diy_fund_ranking()
 
     def parse_fund_ranking(self):
@@ -73,6 +77,7 @@ class EastMoneyFund:
                         fund_object_list.append(Fund(**fund_kwargs))
                 except Exception as e:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(kwargs, fund_kwargs, e))
+                    pass
             FundHistoricalNetWorthRanking.objects.bulk_create(fund_historical_networth_ranking_object_list)
             Fund.objects.bulk_create(fund_object_list)
             log_kwargs['end_time'] = datetime.now()
@@ -89,6 +94,7 @@ class EastMoneyFund:
             FundLog.objects.create(**log_kwargs)
         else:
             logger.warning("can not get nodejs server data.")
+            pass
         logger.info("{} crawl fund ranking completed.".format(datetime.now()))
 
     def parse_diy_fund_ranking(self):
@@ -121,8 +127,8 @@ class EastMoneyFund:
                     kwargs['current_date'] = self.check_date(fund[9])
                     kwargs['current_unit_net_worth'] = self.to_float(fund[10])
                     kwargs['current_cumulative_net_worth'] = self.to_float(fund[11])
-                    fund_kwargs['handling_fee'] = fund[14]
-                    kwargs['handling_fee'] = fund[14]
+                    fund_kwargs['handling_fee'] = self.to_float(fund[14])
+                    kwargs['handling_fee'] = self.to_float(fund[14])
                     fund_ranking_exists = FundHistoricalNetWorthRanking.objects.filter(
                         fund_code=kwargs['fund_code'], current_date=kwargs['current_date'])
                     if fund_ranking_exists:
@@ -140,6 +146,7 @@ class EastMoneyFund:
                         fund_object_list.append(Fund(**fund_kwargs))
                 except Exception as e:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(kwargs, fund_kwargs, e))
+                    pass
             FundHistoricalNetWorthRanking.objects.bulk_create(fund_historical_networth_ranking_object_list)
             Fund.objects.bulk_create(fund_object_list)
             log_kwargs['end_time'] = datetime.now()
@@ -154,10 +161,50 @@ class EastMoneyFund:
             log_kwargs['lof_fund_num'] = funds_json['lofNum']
         else:
             logger.warning("get div_fund_ranking json data error!")
+            pass
         logger.info("{} crawl diy fund ranking completed.".format(datetime.now()))
 
     def get_history_net_worth(self):
+        logger.info("{} start crawl history net worth .".format(datetime.now()))
         fund_codes = Fund.objects.all().values(['fund_code'])
+        for fund_code in fund_codes:
+            params = {
+                'callback': 'jQuery18306004163724110205_1600526195568',
+                'fundCode': fund_code,
+                'pageIndex': 1,
+                'pageSize': self.max_size,
+                '_': '1600569328705',
+            }
+            fund_history_object_list = []
+            request_url = self.history_net_worth_url + urlencode(params)
+            response = requests.get(request_url, headers=self.headers)
+            history_net_worth_json = response.json()
+            if history_net_worth_json and history_net_worth_json.get('Data').get('LSJZList'):
+                history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
+                for history_net_worth in history_net_worths:
+                    try:
+                        kwargs = {'fund_code': fund_code}
+                        kwargs['current_date'] = self.check_date(history_net_worth['FSRQ'])
+                        kwargs['current_unit_net_worth'] = self.to_float(history_net_worth['DWJZ'])
+                        kwargs['current_cumulative_net_worth'] = self.to_float(history_net_worth['LJJZ'])
+                        kwargs['daily'] = self.to_float(history_net_worth['JZZZL'])
+                        kwargs['subscription_status'] = history_net_worth['SGZT']
+                        kwargs['redemption_status'] = history_net_worth['SHZT']
+                        kwargs['dividend_distribution'] = history_net_worth['FHSP']
+                        fund_exists = FundHistoricalNetWorthRanking.objects.filter(
+                            fund_code=kwargs['fund_code'], current_date=kwargs)
+                        if fund_exists:
+                            kwargs.pop('fund_code')
+                            kwargs['update_time'] = datetime.now()
+                            fund_exists.update(**kwargs)
+                        else:
+                            fund_history_object_list.append(FundHistoricalNetWorthRanking(**kwargs))
+                    except Exception as e:
+                        logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {}".format(
+                            datetime.now(), fund_code, kwargs))
+                        pass
+            FundHistoricalNetWorthRanking.objects.bulk_create(fund_history_object_list)
+        logger.info("{} crawl history net worth complete.".format(datetime.now()))
 
     def to_int(self, val):
         try:
