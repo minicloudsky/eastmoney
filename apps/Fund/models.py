@@ -2,6 +2,7 @@ from django.db import models
 
 
 # Create your models here.
+# 基金
 class Fund(models.Model):
     fund_code = models.CharField('基金代码', default='', unique=True, max_length=20, db_index=True)
     fund_name = models.CharField('基金名称', max_length=200, default='')
@@ -24,6 +25,7 @@ class Fund(models.Model):
         return self.fund_code + "_" + self.fund_name
 
 
+# 基金历史净值排名数据
 class FundHistoricalNetWorthRanking(models.Model):
     fund_code = models.CharField('基金代码', default='', max_length=20, db_index=True)
     start_unit_net_worth = models.FloatField('起始单位净值', default=0)
@@ -57,6 +59,23 @@ class FundHistoricalNetWorthRanking(models.Model):
     class Meta:
         # 添加唯一索引约束，防止每天同一个基金被爬取多次
         unique_together = ('fund_code', 'current_date')
+
+
+class FundCompany(models.Model):
+    company_id = models.CharField('基金公司 id', max_length=30, unique=True)
+    company_name = models.CharField('基金公司名', default='', max_length=100)
+    company_short_name = models.CharField('基金公司简称', default='', max_length=30)
+    general_manager = models.CharField('总经理', default='', max_length=30)
+    establish_date = models.DateField('基金公司创立日期', default='')
+    total_manage_amount = models.FloatField('基金管理规模(亿元)', default=0)
+    total_fund_num = models.IntegerField('全部基金数', default=0)
+    total_manager_num = models.IntegerField('全部基金经理数', default=0)
+    tianxiang_star = models.PositiveIntegerField('天相评级', default=0)
+    pinyin_abbreviation_code = models.CharField('基金公司首字母缩写', max_length=200, default='')
+    update_date = models.DateField('东方财富基金公司数据更新时间', null=True)
+    insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
+    update_time = models.DateTimeField('更新时间', null=True)
+    is_deleted = models.IntegerField('是否删除', default=0)
 
 
 # 基金爬取日志

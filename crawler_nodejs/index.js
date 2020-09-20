@@ -47,6 +47,21 @@ function getDiyFundRanking() {
         });
 }
 
+function getFundCompany() {
+    let url = "http://fund.eastmoney.com/Data/FundRankScale.aspx?_=1600581086058"
+    console.log("get url: " + url)
+    return axios
+        .get(url)
+        .then(function (response) {
+            let html_string = response.data.toString(); // 获取网页内容
+            html_string += "\n json;";
+            return Promise.resolve(eval(html_string));
+        })
+        .catch(function (error) {
+            console.log(error);
+        });
+}
+
 app.get("/", (req, res) => {
     let type = req.query.type;
     if (type === 'fund_ranking') {
@@ -56,6 +71,11 @@ app.get("/", (req, res) => {
         });
     } else if (type === 'diy_fund_ranking') {
         let promise = getDiyFundRanking(); // 发起抓取
+        promise.then((response) => {
+            res.json(response); // 数据返回
+        });
+    } else if (type === 'fund_company') {
+        let promise = getFundCompany(); // 发起抓取
         promise.then((response) => {
             res.json(response); // 数据返回
         });

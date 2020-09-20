@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 import requests
 
-from apps.Fund.models import FundHistoricalNetWorthRanking, FundLog, Fund
+from apps.Fund.models import FundHistoricalNetWorthRanking, FundLog, Fund, FundCompany
 
 logger = logging.getLogger("easymoneyfundcrawler")
 
@@ -12,9 +12,14 @@ logger = logging.getLogger("easymoneyfundcrawler")
 # 东方财富基金
 class EastMoneyFund:
     nodejs_server_url = 'http://127.0.0.1:3000?type='
+    # 当天日期
     date = datetime.strftime(datetime.now(), '%Y-%m-%d')
-    max_size = 50 * 365
-    max_fund_num = 100000
+    # 默认错误日期，当日期处理错误时候，将日期设置为 这个值
+    default_error_date = '1976-01-01'
+    # 默认基金历史数据最大条数
+    default_history_fund_max_size = 50 * 365
+    # 默认最大基金数
+    default_max_fund_num = 100000
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
         'Referer': "http://fund.eastmoney.com/data/diyfundranking.html",
@@ -23,10 +28,13 @@ class EastMoneyFund:
     }
     # history_net_worth_url = 'http://api.fund.eastmoney.com/f10/lsjz?callback=jQuery18306004163724110205_1600526195568&fundCode=150304&pageIndex=61&pageSize=20&startDate=&endDate=&_=1600569328705'
     history_net_worth_url = 'http://api.fund.eastmoney.com/f10/lsjz?'
+    fund_company_url = 'http://fund.eastmoney.com/Company/default.html'
 
     def __init__(self):
         self.parse_fund_ranking()
         self.parse_diy_fund_ranking()
+        self.parse_history_net_worth()
+        self.get_fund_company()
 
     def parse_fund_ranking(self):
         logger.warning("{} start parsing fund ranking".format(datetime.now()))
@@ -164,7 +172,7 @@ class EastMoneyFund:
             pass
         logger.info("{} crawl diy fund ranking completed.".format(datetime.now()))
 
-    def get_history_net_worth(self):
+    def parse_history_net_worth(self):
         logger.info("{} start crawl history net worth .".format(datetime.now()))
         fund_codes = Fund.objects.all().values('fund_code')
         fund_codes = [x['fund_code'] for x in fund_codes]
@@ -173,7 +181,7 @@ class EastMoneyFund:
                 'callback': 'jQuery18306004163724110205_1600526195568',
                 'fundCode': fund_code,
                 'pageIndex': 1,
-                'pageSize': self.max_size,
+                'pageSize': self.default_history_fund_max_size,
                 '_': '1600569328705',
             }
             fund_history_object_list = []
@@ -207,6 +215,48 @@ class EastMoneyFund:
             FundHistoricalNetWorthRanking.objects.bulk_create(fund_history_object_list)
         logger.info("{} crawl history net worth complete.".format(datetime.now()))
 
+    def get_fund_company(self):
+        logger.info("{} start crawl fund company .".format(datetime.now()))
+        url = self.nodejs_server_url + "fund_company"
+        response = requests.get(url)
+        funds_company_json = response.json()
+        funds_company_object_list = []
+        if funds_company_json and funds_company_json.get('datas'):
+            funds_company = funds_company_json.get('datas')
+            for company in funds_company:
+                kwargs = {}
+                try:
+                    kwargs['company_id'] = company[0] if company[0] else ''
+                    kwargs['company_name'] = company[1] if company[1] else ''
+                    kwargs['establish_date'] = self.check_date(company[2])
+                    kwargs['total_fund_num'] = self.to_int(company[3])
+                    kwargs['general_manager'] = company[4] if company[4] else ''
+                    kwargs['pinyin_abbreviation_code'] = company[5] if company[5] else ''
+                    kwargs['total_manage_amount'] = self.to_float(company[7])
+                    kwargs['tianxiang_star'] = len(company[8]) if company[8] else 0
+                    kwargs['company_short_name'] = company[9] if company[9] else ''
+                    if company[11]:
+                        update_date = company[11].split(' ')
+                        update_date = update_date[0].replace('/', '-')
+                        update_date = self.check_date(update_date)
+                        kwargs['update_date'] = update_date
+                    else:
+                        kwargs['update_date'] = self.default_error_date
+                    is_exist = FundCompany.objects.filter(company_id=kwargs['company_id'])
+                    if is_exist:
+                        kwargs.pop('company_id')
+                        kwargs['update_time'] = datetime.now()
+                        FundCompany.objects.update(**kwargs)
+                    else:
+                        funds_company_object_list.append(FundCompany(**kwargs))
+                except Exception as e:
+                    logger.warning("{} parse fund compny error! {} -{} {}".format(datetime.now(), company, kwargs, e))
+            FundCompany.objects.bulk_create(funds_company_object_list)
+        else:
+            logger.warning("{} can not get fund company! perhaps nodejs crawl server not "
+                           "started.".format(datetime.now()))
+        logger.info("{} crawl fund company complete.".format(datetime.now()))
+
     def to_int(self, val):
         try:
             if val:
@@ -228,30 +278,28 @@ class EastMoneyFund:
         except Exception as e:
             val = -9999
         return val
-        # 日期时间转换，将 09-17 转为 2020-09-17
 
+    # 日期时间转换，将 09-17 转为 2020-09-17
     def format_datetime(self, val):
         try:
             if val:
-                print(val)
                 val = str(datetime.now().year) + "-" + val
                 val = datetime.strptime(val, '%Y-%m-%d')
                 return val
-            return str(datetime.now())
+            return self.default_error_date
         except Exception as e:
-            val = self.date
             logger.warning("format date error {} --- {}".format(val, e))
-            return val
+            return self.default_error_date
 
     def check_date(self, val, can_null=False):
         try:
             val = val.replace('---', '').replace('--', '')
             if val and isinstance(datetime.strptime(val, '%Y-%m-%d'), datetime):
                 return val
-            return '' if can_null else self.date
+            return '' if can_null else self.default_error_date
         except Exception as e:
             logger.warning("check date failed! val :{} -- {}".format(val, e))
-            return '' if can_null else self.date
+            return '' if can_null else self.default_error_date
 
 
 if __name__ == '__main__':
