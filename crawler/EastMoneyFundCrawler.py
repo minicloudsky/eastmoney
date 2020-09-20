@@ -31,10 +31,10 @@ class EastMoneyFund:
     fund_company_url = 'http://fund.eastmoney.com/Company/default.html'
 
     def __init__(self):
-        self.parse_fund_ranking()
-        self.parse_diy_fund_ranking()
+        # self.parse_fund_ranking()
+        # self.parse_diy_fund_ranking()
         self.parse_history_net_worth()
-        self.get_fund_company()
+        # self.get_fund_company()
 
     def parse_fund_ranking(self):
         logger.warning("{} start parsing fund ranking".format(datetime.now()))
@@ -185,7 +185,6 @@ class EastMoneyFund:
         fund_codes = [x['fund_code'] for x in fund_codes]
         for fund_code in fund_codes:
             params = {
-                'callback': 'jQuery18306004163724110205_1600526195568',
                 'fundCode': fund_code,
                 'pageIndex': 1,
                 'pageSize': self.default_history_fund_max_size,
@@ -194,6 +193,7 @@ class EastMoneyFund:
             fund_history_object_list = []
             request_url = self.history_net_worth_url + urlencode(params)
             response = requests.get(request_url, headers=self.headers)
+            print(response.text)
             history_net_worth_json = response.json()
             if history_net_worth_json and history_net_worth_json.get('Data').get('LSJZList'):
                 history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
