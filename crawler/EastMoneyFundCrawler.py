@@ -1,9 +1,9 @@
 import logging
 from datetime import datetime
 from urllib.parse import urlencode
-
+import threading
 import requests
-
+import os
 from apps.Fund.models import FundHistoricalNetWorthRanking, FundLog, Fund, FundCompany
 
 logger = logging.getLogger("easymoneyfundcrawler")
@@ -20,6 +20,9 @@ class EastMoneyFund:
     default_history_fund_max_size = 50 * 365
     # 默认最大基金数
     default_max_fund_num = 100000
+    # 默认线程数
+    thread_num = 50
+
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
         'Referer': "http://fund.eastmoney.com/data/diyfundranking.html",
@@ -33,7 +36,7 @@ class EastMoneyFund:
     def __init__(self):
         self.parse_fund_ranking()
         self.parse_diy_fund_ranking()
-        self.parse_history_net_worth()
+        self.schedule_history_net_worth()
         self.get_fund_company()
 
     def parse_fund_ranking(self):
@@ -179,10 +182,17 @@ class EastMoneyFund:
             pass
         logger.info("{} crawl diy fund ranking completed.".format(datetime.now()))
 
-    def parse_history_net_worth(self):
-        logger.info("{} start crawl history net worth .".format(datetime.now()))
+    def schedule_history_net_worth(self):
         fund_codes = Fund.objects.all().values('fund_code')
         fund_codes = [x['fund_code'] for x in fund_codes]
+        fund_code_task_list = self.split_list(fund_codes, self.thread_num)
+        for task in fund_code_task_list:
+            t = threading.Thread(target=self.parse_history_net_worth, args=(task,))
+            t.start()
+            t.join()
+
+    def parse_history_net_worth(self, fund_codes):
+        logger.info("thread {} {} start crawl history net worth .".format(os.getpid(), datetime.now()))
         for fund_code in fund_codes:
             params = {
                 'fundCode': fund_code,
@@ -219,7 +229,7 @@ class EastMoneyFund:
                             datetime.now(), fund_code, kwargs))
                         pass
             FundHistoricalNetWorthRanking.objects.bulk_create(fund_history_object_list)
-        logger.info("{} crawl history net worth complete.".format(datetime.now()))
+        logger.info("thread {} {} crawl history net worth complete.".format(os.getpid(), datetime.now()))
 
     def get_fund_company(self):
         logger.info("{} start crawl fund company .".format(datetime.now()))
@@ -306,6 +316,18 @@ class EastMoneyFund:
         except Exception as e:
             logger.warning("check date failed! val :{} -- {}".format(val, e))
             return '' if can_null else self.default_error_date
+
+    def split_list(self, list, n):
+        target_list = []
+        cut = int(len(list) / n)
+        if cut == 0:
+            list = [[x] for x in list]
+            none_array = [[] for i in range(0, n - len(list))]
+            return list + none_array
+        for i in range(0, n - 1):
+            target_list.append(list[cut * i:cut * (1 + i)])
+        target_list.append(list[cut * (n - 1):len(list)])
+        return target_list
 
 
 if __name__ == '__main__':
