@@ -15,8 +15,9 @@ source venv/bin/activate
 
 ### 修改数据库,改为你自己的数据库
 
-````bash
-vim eastmoneyspider/settings.py
+
+`vim eastmoneyspider/settings.py`
+
 ```python
 DATABASES = {
     "default": {
@@ -39,5 +40,7 @@ pip install -r requirements.txt
 ### 执行爬取基金
 
 ```bash
-python run_spider.py
+cd bin
+chmod 777 *.sh
+sh start_server.sh
 ```
