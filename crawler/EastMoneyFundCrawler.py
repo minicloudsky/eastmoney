@@ -5,6 +5,7 @@ import threading
 import requests
 import os
 from apps.Fund.models import FundHistoricalNetWorthRanking, FundLog, Fund, FundCompany
+from multiprocessing.dummy import Pool as ThreadPool
 
 logger = logging.getLogger("easymoneyfundcrawler")
 
@@ -183,53 +184,57 @@ class EastMoneyFund:
         logger.info("{} crawl diy fund ranking completed.".format(datetime.now()))
 
     def schedule_history_net_worth(self):
+        logger.info("{} start multi thread crawl history net worth.".format(datetime.now()))
         fund_codes = Fund.objects.all().values('fund_code')
         fund_codes = [x['fund_code'] for x in fund_codes]
-        fund_code_task_list = self.split_list(fund_codes, self.thread_num)
-        for task in fund_code_task_list:
-            t = threading.Thread(target=self.parse_history_net_worth, args=(task,))
-            t.start()
-            t.join()
+        pool = ThreadPool(self.thread_num)
+        # 在每个线程中执行任务
+        thread_exec_results = pool.map(self.parse_history_net_worth, fund_codes)
+        # Close the pool and wait for the work to finish
+        pool.close()
+        pool.join()
+        logger.info("{} thread exec results:\n{}".format(datetime.now(), thread_exec_results))
+        logger.info("{} crawl history net worth completed.".format(datetime.now()))
 
-    def parse_history_net_worth(self, fund_codes):
-        logger.info("thread {} {} start crawl history net worth .".format(os.getpid(), datetime.now()))
-        for fund_code in fund_codes:
-            params = {
-                'fundCode': fund_code,
-                'pageIndex': 1,
-                'pageSize': self.default_history_fund_max_size,
-                '_': '1600569328705',
-            }
-            fund_history_object_list = []
-            request_url = self.history_net_worth_url + urlencode(params)
-            response = requests.get(request_url, headers=self.headers)
-            history_net_worth_json = response.json()
-            if history_net_worth_json and history_net_worth_json.get('Data').get('LSJZList'):
-                history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
-                for history_net_worth in history_net_worths:
-                    try:
-                        kwargs = {'fund_code': fund_code}
-                        kwargs['current_date'] = self.check_date(history_net_worth['FSRQ'])
-                        kwargs['current_unit_net_worth'] = self.to_float(history_net_worth['DWJZ'])
-                        kwargs['current_cumulative_net_worth'] = self.to_float(history_net_worth['LJJZ'])
-                        kwargs['daily'] = self.to_float(history_net_worth['JZZZL'])
-                        kwargs['subscription_status'] = history_net_worth['SGZT']
-                        kwargs['redemption_status'] = history_net_worth['SHZT']
-                        kwargs['dividend_distribution'] = history_net_worth['FHSP']
-                        fund_exists = FundHistoricalNetWorthRanking.objects.filter(
-                            fund_code=kwargs['fund_code'], current_date=kwargs['current_date'])
-                        if fund_exists:
-                            kwargs.pop('fund_code')
-                            kwargs['update_time'] = datetime.now()
-                            fund_exists.update(**kwargs)
-                        else:
-                            fund_history_object_list.append(FundHistoricalNetWorthRanking(**kwargs))
-                    except Exception as e:
-                        logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {}".format(
-                            datetime.now(), fund_code, kwargs))
-                        pass
-            FundHistoricalNetWorthRanking.objects.bulk_create(fund_history_object_list)
-        logger.info("thread {} {} crawl history net worth complete.".format(os.getpid(), datetime.now()))
+    def parse_history_net_worth(self, fund_code):
+        logger.info("thread {} {} start crawl history net worth .".format(threading.currentThread(), datetime.now()))
+        params = {
+            'fundCode': fund_code,
+            'pageIndex': 1,
+            'pageSize': self.default_history_fund_max_size,
+            '_': '1600569328705',
+        }
+        fund_history_object_list = []
+        request_url = self.history_net_worth_url + urlencode(params)
+        response = requests.get(request_url, headers=self.headers)
+        history_net_worth_json = response.json()
+        if history_net_worth_json and history_net_worth_json.get('Data').get('LSJZList'):
+            history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
+            for history_net_worth in history_net_worths:
+                kwargs = {'fund_code': fund_code}
+                try:
+                    kwargs['current_date'] = self.check_date(history_net_worth['FSRQ'])
+                    kwargs['current_unit_net_worth'] = self.to_float(history_net_worth['DWJZ'])
+                    kwargs['current_cumulative_net_worth'] = self.to_float(history_net_worth['LJJZ'])
+                    kwargs['daily'] = self.to_float(history_net_worth['JZZZL'])
+                    kwargs['subscription_status'] = history_net_worth['SGZT']
+                    kwargs['redemption_status'] = history_net_worth['SHZT']
+                    kwargs['dividend_distribution'] = history_net_worth['FHSP']
+                    fund_exists = FundHistoricalNetWorthRanking.objects.filter(
+                        fund_code=kwargs['fund_code'], current_date=kwargs['current_date'])
+                    if fund_exists:
+                        kwargs.pop('fund_code')
+                        kwargs['update_time'] = datetime.now()
+                        fund_exists.update(**kwargs)
+                    else:
+                        fund_history_object_list.append(FundHistoricalNetWorthRanking(**kwargs))
+                except Exception as e:
+                    logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {}".format(
+                        datetime.now(), fund_code, kwargs))
+                    pass
+        FundHistoricalNetWorthRanking.objects.bulk_create(fund_history_object_list)
+
+    logger.info("thread {} {} crawl history net worth complete.".format(threading.currentThread(), datetime.now()))
 
     def get_fund_company(self):
         logger.info("{} start crawl fund company .".format(datetime.now()))

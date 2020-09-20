@@ -15,7 +15,7 @@ function getFundRanking() {
     let max_fund_num = 100000; // 基金最大个数
     let url = "http://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=all&rs=&gs=0&sc=zzf&st=desc&sd="
         + date + "&ed=" + date + "&qdii=&pi=1&pn=" + max_fund_num + "&dx=1"
-    console.log("get url: " + url)
+    console.log("getFundRanking url: " + url)
     return axios
         .get(url)
         .then(function (response) {
@@ -34,7 +34,7 @@ function getDiyFundRanking() {
     let start_date = '1990-01-01';
     let url = "http://fund.eastmoney.com/data/rankhandler.aspx?op=dy&dt=kf&ft=all&rs=&gs=0&sc=qjzf&st=desc&sd=" + start_date
         + "&ed=" + end_date + "&es=0&qdii=&pi=1&pn=" + max_fund_num + "&dx=0&v=" + Math.random()
-    console.log("get url: " + url)
+    console.log("getDiyFundRanking url: " + url)
     return axios
         .get(url)
         .then(function (response) {
@@ -49,7 +49,7 @@ function getDiyFundRanking() {
 
 function getFundCompany() {
     let url = "http://fund.eastmoney.com/Data/FundRankScale.aspx?_=1600581086058"
-    console.log("get url: " + url)
+    console.log("getFundCompany: " + url)
     return axios
         .get(url)
         .then(function (response) {
