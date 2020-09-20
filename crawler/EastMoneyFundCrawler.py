@@ -75,7 +75,14 @@ class EastMoneyFund:
                     fund_kwargs['establish_date'] = self.check_date(fund[16], True)
                     kwargs['handling_fee'] = self.to_float(fund[20])
                     fund_kwargs['handling_fee'] = self.to_float(fund[20])
-                    fund_historical_networth_ranking_object_list.append(FundHistoricalNetWorthRanking(**kwargs))
+                    fund_ranking_exists = FundHistoricalNetWorthRanking.objects.filter(
+                        fund_code=kwargs['fund_code'], current_date=kwargs['current_date'])
+                    if fund_ranking_exists:
+                        kwargs.pop('fund_code')
+                        kwargs['update_time'] = datetime.now()
+                        fund_ranking_exists.update(**kwargs)
+                    else:
+                        fund_historical_networth_ranking_object_list.append(FundHistoricalNetWorthRanking(**kwargs))
                     fund_exists = Fund.objects.filter(fund_code=fund_kwargs['fund_code'])
                     if fund_exists:
                         fund_kwargs.pop('fund_code')
