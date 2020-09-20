@@ -166,7 +166,8 @@ class EastMoneyFund:
 
     def get_history_net_worth(self):
         logger.info("{} start crawl history net worth .".format(datetime.now()))
-        fund_codes = Fund.objects.all().values(['fund_code'])
+        fund_codes = Fund.objects.all().values('fund_code')
+        fund_codes = [x['fund_code'] for x in fund_codes]
         for fund_code in fund_codes:
             params = {
                 'callback': 'jQuery18306004163724110205_1600526195568',
