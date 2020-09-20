@@ -201,7 +201,7 @@ class EastMoneyFund:
                         kwargs['redemption_status'] = history_net_worth['SHZT']
                         kwargs['dividend_distribution'] = history_net_worth['FHSP']
                         fund_exists = FundHistoricalNetWorthRanking.objects.filter(
-                            fund_code=kwargs['fund_code'], current_date=kwargs)
+                            fund_code=kwargs['fund_code'], current_date=kwargs['current_date'])
                         if fund_exists:
                             kwargs.pop('fund_code')
                             kwargs['update_time'] = datetime.now()
