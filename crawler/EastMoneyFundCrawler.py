@@ -193,7 +193,6 @@ class EastMoneyFund:
             fund_history_object_list = []
             request_url = self.history_net_worth_url + urlencode(params)
             response = requests.get(request_url, headers=self.headers)
-            print(response.text)
             history_net_worth_json = response.json()
             if history_net_worth_json and history_net_worth_json.get('Data').get('LSJZList'):
                 history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
