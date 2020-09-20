@@ -6,9 +6,10 @@
 
 `git clone https://github.com/minicloudsky/EastMoneySpider.git`
 
-### 创建虚拟环境
+### 创建 python3 虚拟环境
 
 ```bash
+pip install virtualenv
 virtualenv venv
 source venv/bin/activate
 ```
