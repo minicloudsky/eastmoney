@@ -36,11 +36,15 @@ class EastMoneyFund:
     fund_company_url = 'http://fund.eastmoney.com/Company/default.html'
 
     def __init__(self):
+        FundLog.objects.create(name="开始爬取东方财富基金数据",start_time=datetime.now(),end_time=datetime.now())
         self.get_fund_company()
         self.parse_fund_ranking()
         self.parse_diy_fund_ranking()
         self.schedule_history_net_worth()
         logger.warning("------{} All crawling task finished".format(datetime.now()))
+        FundLog.objects.create(
+            name="爬取东方财富基金数据完成", start_time=datetime.now(), end_time=datetime.now())
+
 
     def parse_fund_ranking(self):
         logger.warning("{} start parsing fund ranking".format(datetime.now()))
@@ -206,8 +210,10 @@ class EastMoneyFund:
         # Close the pool and wait for the work to finish
         pool.close()
         pool.join()
-        logger.info("{} thread exec results:\n{}".format(datetime.now(), thread_exec_results))
-        logger.info("{} crawl history net worth completed.".format(datetime.now()))
+        logger.info("{} thread exec results:\n{}".format(
+            datetime.now(), thread_exec_results))
+        logger.info(
+            "{} crawl history net worth completed.".format(datetime.now()))
 
     def parse_history_net_worth(self, fund_code):
         logger.info("process {} thread {} {} start crawl history net worth .".format(
@@ -223,7 +229,8 @@ class EastMoneyFund:
         response = requests.get(request_url, headers=self.headers)
         history_net_worth_json = copy.copy(response.json())
         if history_net_worth_json and history_net_worth_json.get('Data').get('LSJZList'):
-            history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
+            history_net_worths = history_net_worth_json.get(
+                'Data').get('LSJZList')
             for history_net_worth in history_net_worths:
                 kwargs = {'fund_code': fund_code}
                 try:
@@ -248,7 +255,7 @@ class EastMoneyFund:
                             FundHistoricalNetWorthRanking(**kwargs))
                 except Exception as e:
                     logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {} exception : {}".format(
-                        datetime.now(), fund_code, kwargs,e))
+                        datetime.now(), fund_code, kwargs, e))
         FundHistoricalNetWorthRanking.objects.bulk_create(
             fund_history_object_list)
         logger.info("process {} thread {} {} crawl history net worth complete.".format(
