@@ -6,6 +6,7 @@ import requests
 import os
 from apps.Fund.models import FundHistoricalNetWorthRanking, FundLog, Fund, FundCompany
 from multiprocessing.dummy import Pool as ThreadPool
+import copy
 
 logger = logging.getLogger("easymoneyfundcrawler")
 
@@ -22,7 +23,7 @@ class EastMoneyFund:
     # 默认最大基金数
     default_max_fund_num = 100000
     # 默认线程数
-    thread_num = 50
+    thread_num = 100
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
@@ -35,10 +36,10 @@ class EastMoneyFund:
     fund_company_url = 'http://fund.eastmoney.com/Company/default.html'
 
     def __init__(self):
+        self.get_fund_company()
         self.parse_fund_ranking()
         self.parse_diy_fund_ranking()
         self.schedule_history_net_worth()
-        self.get_fund_company()
 
     def parse_fund_ranking(self):
         logger.warning("{} start parsing fund ranking".format(datetime.now()))
@@ -47,9 +48,9 @@ class EastMoneyFund:
         log_kwargs['name'] = '爬取基金排行'
         log_kwargs['start_time'] = datetime.now()
         response = requests.get(url)
-        funds_json = response.json()
+        funds_json = copy.copy(response.json())
         if funds_json:
-            all_fund = funds_json['datas']
+            all_fund = copy.copy(funds_json['datas'])
             fund_historical_networth_ranking_object_list = []
             fund_object_list = []
             for fund in all_fund:
@@ -122,7 +123,7 @@ class EastMoneyFund:
         log_kwargs = {}
         log_kwargs['name'] = '爬取基金从成立以来的净值和分红情况'
         response = requests.get(url)
-        funds_json = response.json()
+        funds_json = copy.copy(response.json())
         fund_object_list = []
         fund_historical_networth_ranking_object_list = []
         if funds_json:
@@ -207,7 +208,7 @@ class EastMoneyFund:
         fund_history_object_list = []
         request_url = self.history_net_worth_url + urlencode(params)
         response = requests.get(request_url, headers=self.headers)
-        history_net_worth_json = response.json()
+        history_net_worth_json = copy.copy(response.json())
         if history_net_worth_json and history_net_worth_json.get('Data').get('LSJZList'):
             history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
             for history_net_worth in history_net_worths:
