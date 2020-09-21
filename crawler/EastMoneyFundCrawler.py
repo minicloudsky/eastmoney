@@ -40,6 +40,7 @@ class EastMoneyFund:
         self.parse_fund_ranking()
         self.parse_diy_fund_ranking()
         self.schedule_history_net_worth()
+        logger.warning("------{} All crawling task finished".format(datetime.now()))
 
     def parse_fund_ranking(self):
         logger.warning("{} start parsing fund ranking".format(datetime.now()))
