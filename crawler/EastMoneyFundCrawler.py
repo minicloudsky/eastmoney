@@ -66,7 +66,8 @@ class EastMoneyFund:
                     fund_kwargs['fund_short_name'] = fund[1][:6] if fund[1] else ''
                     kwargs['current_date'] = self.check_date(fund[3])
                     kwargs['current_unit_net_worth'] = self.to_float(fund[4])
-                    kwargs['current_cumulative_net_worth'] = self.to_float(fund[5])
+                    kwargs['current_cumulative_net_worth'] = self.to_float(
+                        fund[5])
                     kwargs['daily'] = self.to_float(fund[6])
                     kwargs['last_week'] = self.to_float(fund[7])
                     kwargs['last_month'] = self.to_float(fund[8])
@@ -77,7 +78,8 @@ class EastMoneyFund:
                     kwargs['last_three_year'] = self.to_float(fund[13])
                     kwargs['this_year'] = self.to_float(fund[14])
                     kwargs['since_founded'] = self.to_float(fund[15])
-                    fund_kwargs['establish_date'] = self.check_date(fund[16], True)
+                    fund_kwargs['establish_date'] = self.check_date(
+                        fund[16], True)
                     kwargs['handling_fee'] = self.to_float(fund[20])
                     fund_kwargs['handling_fee'] = self.to_float(fund[20])
                     fund_ranking_exists = FundHistoricalNetWorthRanking.objects.filter(
@@ -87,8 +89,10 @@ class EastMoneyFund:
                         kwargs['update_time'] = datetime.now()
                         fund_ranking_exists.update(**kwargs)
                     else:
-                        fund_historical_networth_ranking_object_list.append(FundHistoricalNetWorthRanking(**kwargs))
-                    fund_exists = Fund.objects.filter(fund_code=fund_kwargs['fund_code'])
+                        fund_historical_networth_ranking_object_list.append(
+                            FundHistoricalNetWorthRanking(**kwargs))
+                    fund_exists = Fund.objects.filter(
+                        fund_code=fund_kwargs['fund_code'])
                     if fund_exists:
                         fund_kwargs.pop('fund_code')
                         fund_kwargs['update_time'] = datetime.now()
@@ -96,9 +100,10 @@ class EastMoneyFund:
                     else:
                         fund_object_list.append(Fund(**fund_kwargs))
                 except Exception as e:
-                    logger.warning("kwargs :{} fund_kwargs: {} error {}".format(kwargs, fund_kwargs, e))
-                    pass
-            FundHistoricalNetWorthRanking.objects.bulk_create(fund_historical_networth_ranking_object_list)
+                    logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
+                        kwargs, fund_kwargs, e))
+            FundHistoricalNetWorthRanking.objects.bulk_create(
+                fund_historical_networth_ranking_object_list)
             Fund.objects.bulk_create(fund_object_list)
             log_kwargs['end_time'] = datetime.now()
             log_kwargs['total_fund'] = funds_json['allNum']
@@ -114,7 +119,6 @@ class EastMoneyFund:
             FundLog.objects.create(**log_kwargs)
         else:
             logger.warning("can not get nodejs server data.")
-            pass
         logger.info("{} crawl fund ranking completed.".format(datetime.now()))
 
     def parse_diy_fund_ranking(self):
@@ -143,10 +147,12 @@ class EastMoneyFund:
                     kwargs['since_founded_bonus_num'] = self.to_int(fund[5])
                     fund_kwargs['establish_date'] = self.check_date(fund[6])
                     kwargs['start_unit_net_worth'] = self.to_float(fund[7])
-                    kwargs['start_cumulative_net_worth'] = self.to_float(fund[8])
+                    kwargs['start_cumulative_net_worth'] = self.to_float(
+                        fund[8])
                     kwargs['current_date'] = self.check_date(fund[9])
                     kwargs['current_unit_net_worth'] = self.to_float(fund[10])
-                    kwargs['current_cumulative_net_worth'] = self.to_float(fund[11])
+                    kwargs['current_cumulative_net_worth'] = self.to_float(
+                        fund[11])
                     fund_kwargs['handling_fee'] = self.to_float(fund[14])
                     kwargs['handling_fee'] = self.to_float(fund[14])
                     fund_ranking_exists = FundHistoricalNetWorthRanking.objects.filter(
@@ -156,8 +162,10 @@ class EastMoneyFund:
                         kwargs['update_time'] = datetime.now()
                         fund_ranking_exists.update(**kwargs)
                     else:
-                        fund_historical_networth_ranking_object_list.append(FundHistoricalNetWorthRanking(**kwargs))
-                    fund_exists = Fund.objects.filter(fund_code=fund_kwargs['fund_code'])
+                        fund_historical_networth_ranking_object_list.append(
+                            FundHistoricalNetWorthRanking(**kwargs))
+                    fund_exists = Fund.objects.filter(
+                        fund_code=fund_kwargs['fund_code'])
                     if fund_exists:
                         fund_kwargs.pop('fund_code')
                         fund_kwargs['update_time'] = datetime.now()
@@ -165,9 +173,10 @@ class EastMoneyFund:
                     else:
                         fund_object_list.append(Fund(**fund_kwargs))
                 except Exception as e:
-                    logger.warning("kwargs :{} fund_kwargs: {} error {}".format(kwargs, fund_kwargs, e))
-                    pass
-            FundHistoricalNetWorthRanking.objects.bulk_create(fund_historical_networth_ranking_object_list)
+                    logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
+                        kwargs, fund_kwargs, e))
+            FundHistoricalNetWorthRanking.objects.bulk_create(
+                fund_historical_networth_ranking_object_list)
             Fund.objects.bulk_create(fund_object_list)
             log_kwargs['end_time'] = datetime.now()
             log_kwargs['total_fund'] = funds_json['allNum']
@@ -181,16 +190,18 @@ class EastMoneyFund:
             log_kwargs['lof_fund_num'] = funds_json['lofNum']
         else:
             logger.warning("get div_fund_ranking json data error!")
-            pass
-        logger.info("{} crawl diy fund ranking completed.".format(datetime.now()))
+        logger.info(
+            "{} crawl diy fund ranking completed.".format(datetime.now()))
 
     def schedule_history_net_worth(self):
-        logger.info("{} start multi thread crawl history net worth.".format(datetime.now()))
+        logger.info(
+            "{} start multi thread crawl history net worth.".format(datetime.now()))
         fund_codes = Fund.objects.all().values('fund_code')
         fund_codes = [x['fund_code'] for x in fund_codes]
         pool = ThreadPool(self.thread_num)
         # 在每个线程中执行任务
-        thread_exec_results = pool.map(self.parse_history_net_worth, fund_codes)
+        thread_exec_results = pool.map(
+            self.parse_history_net_worth, fund_codes)
         # Close the pool and wait for the work to finish
         pool.close()
         pool.join()
@@ -198,7 +209,8 @@ class EastMoneyFund:
         logger.info("{} crawl history net worth completed.".format(datetime.now()))
 
     def parse_history_net_worth(self, fund_code):
-        logger.info("thread {} {} start crawl history net worth .".format(threading.currentThread(), datetime.now()))
+        logger.info("process {} thread {} {} start crawl history net worth .".format(
+            os.getpid(), threading.currentThread(), datetime.now()))
         params = {
             'fundCode': fund_code,
             'pageIndex': 1,
@@ -214,9 +226,12 @@ class EastMoneyFund:
             for history_net_worth in history_net_worths:
                 kwargs = {'fund_code': fund_code}
                 try:
-                    kwargs['current_date'] = self.check_date(history_net_worth['FSRQ'])
-                    kwargs['current_unit_net_worth'] = self.to_float(history_net_worth['DWJZ'])
-                    kwargs['current_cumulative_net_worth'] = self.to_float(history_net_worth['LJJZ'])
+                    kwargs['current_date'] = self.check_date(
+                        history_net_worth['FSRQ'])
+                    kwargs['current_unit_net_worth'] = self.to_float(
+                        history_net_worth['DWJZ'])
+                    kwargs['current_cumulative_net_worth'] = self.to_float(
+                        history_net_worth['LJJZ'])
                     kwargs['daily'] = self.to_float(history_net_worth['JZZZL'])
                     kwargs['subscription_status'] = history_net_worth['SGZT']
                     kwargs['redemption_status'] = history_net_worth['SHZT']
@@ -228,13 +243,15 @@ class EastMoneyFund:
                         kwargs['update_time'] = datetime.now()
                         fund_exists.update(**kwargs)
                     else:
-                        fund_history_object_list.append(FundHistoricalNetWorthRanking(**kwargs))
+                        fund_history_object_list.append(
+                            FundHistoricalNetWorthRanking(**kwargs))
                 except Exception as e:
-                    logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {}".format(
-                        datetime.now(), fund_code, kwargs))
-                    pass
-        FundHistoricalNetWorthRanking.objects.bulk_create(fund_history_object_list)
-        logger.info("thread {} {} crawl history net worth complete.".format(threading.currentThread(), datetime.now()))
+                    logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {} exception : {}".format(
+                        datetime.now(), fund_code, kwargs,e))
+        FundHistoricalNetWorthRanking.objects.bulk_create(
+            fund_history_object_list)
+        logger.info("process {} thread {} {} crawl history net worth complete.".format(
+            os.getpid(), threading.currentThread(), datetime.now()))
 
     def get_fund_company(self):
         logger.info("{} start crawl fund company .".format(datetime.now()))
@@ -254,7 +271,8 @@ class EastMoneyFund:
                     kwargs['general_manager'] = company[4] if company[4] else ''
                     kwargs['pinyin_abbreviation_code'] = company[5] if company[5] else ''
                     kwargs['total_manage_amount'] = self.to_float(company[7])
-                    kwargs['tianxiang_star'] = len(company[8]) if company[8] else 0
+                    kwargs['tianxiang_star'] = len(
+                        company[8]) if company[8] else 0
                     kwargs['company_short_name'] = company[9] if company[9] else ''
                     if company[11]:
                         update_date = company[11].split(' ')
@@ -263,7 +281,8 @@ class EastMoneyFund:
                         kwargs['update_date'] = update_date
                     else:
                         kwargs['update_date'] = self.default_error_date
-                    is_exist = FundCompany.objects.filter(company_id=kwargs['company_id'])
+                    is_exist = FundCompany.objects.filter(
+                        company_id=kwargs['company_id'])
                     if is_exist:
                         kwargs.pop('company_id')
                         kwargs['update_time'] = datetime.now()
@@ -271,7 +290,8 @@ class EastMoneyFund:
                     else:
                         funds_company_object_list.append(FundCompany(**kwargs))
                 except Exception as e:
-                    logger.warning("{} parse fund compny error! {} -{} {}".format(datetime.now(), company, kwargs, e))
+                    logger.warning(
+                        "{} parse fund compny error! {} -{} {}".format(datetime.now(), company, kwargs, e))
             FundCompany.objects.bulk_create(funds_company_object_list)
         else:
             logger.warning("{} can not get fund company! perhaps nodejs crawl server not "
