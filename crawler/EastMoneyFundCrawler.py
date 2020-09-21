@@ -128,6 +128,7 @@ class EastMoneyFund:
 
     def parse_diy_fund_ranking(self):
         logger.info("{} start crawl diy fund ranking".format(datetime.now()))
+        FundLog.objects.create(name="爬取自定义基金排行", start_time=datetime.now(), end_time=datetime.now())
         url = self.nodejs_server_url + "diy_fund_ranking"
         log_kwargs = {}
         log_kwargs['name'] = '爬取基金从成立以来的净值和分红情况'
@@ -195,12 +196,12 @@ class EastMoneyFund:
             log_kwargs['lof_fund_num'] = funds_json['lofNum']
         else:
             logger.warning("get div_fund_ranking json data error!")
-        logger.info(
-            "{} crawl diy fund ranking completed.".format(datetime.now()))
+        logger.info("{} crawl diy fund ranking completed.".format(datetime.now()))
+        FundLog.objects.create(name="爬取自定义基金排行完成", start_time=datetime.now(), end_time=datetime.now())
+
 
     def schedule_history_net_worth(self):
-        logger.info(
-            "{} start multi thread crawl history net worth.".format(datetime.now()))
+        logger.info("{} start multi thread crawl history net worth.".format(datetime.now()))
         fund_codes = Fund.objects.all().values('fund_code')
         fund_codes = [x['fund_code'] for x in fund_codes]
         pool = ThreadPool(self.thread_num)
@@ -210,10 +211,8 @@ class EastMoneyFund:
         # Close the pool and wait for the work to finish
         pool.close()
         pool.join()
-        logger.info("{} thread exec results:\n{}".format(
-            datetime.now(), thread_exec_results))
-        logger.info(
-            "{} crawl history net worth completed.".format(datetime.now()))
+        logger.info("{} thread exec results:\n{}".format(datetime.now(), thread_exec_results))
+        logger.info("{} crawl history net worth completed.".format(datetime.now()))
 
     def parse_history_net_worth(self, fund_code):
         logger.info("process {} thread {} {} start crawl history net worth .".format(
@@ -298,8 +297,7 @@ class EastMoneyFund:
                     else:
                         funds_company_object_list.append(FundCompany(**kwargs))
                 except Exception as e:
-                    logger.warning(
-                        "{} parse fund compny error! {} -{} {}".format(datetime.now(), company, kwargs, e))
+                    logger.warning("{} parse fund compny error! {} -{} {}".format(datetime.now(), company, kwargs, e))
             FundCompany.objects.bulk_create(funds_company_object_list)
         else:
             logger.warning("{} can not get fund company! perhaps nodejs crawl server not "
