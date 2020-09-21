@@ -215,6 +215,8 @@ class EastMoneyFund:
         logger.info("{} crawl history net worth completed.".format(datetime.now()))
 
     def parse_history_net_worth(self, fund_code):
+        FundLog.objects.create(name="process {} thread {} start crawl history net worth ".format(os.getpid(),
+        threading.currentThread().getName()), start_time=datetime.now(),end_time=datetime.now())
         logger.info("process {} thread {} {} start crawl history net worth .".format(
             os.getpid(), threading.currentThread(), datetime.now()))
         params = {
@@ -259,8 +261,13 @@ class EastMoneyFund:
             fund_history_object_list)
         logger.info("process {} thread {} {} crawl history net worth complete.".format(
             os.getpid(), threading.currentThread(), datetime.now()))
+        FundLog.objects.create(name="process {} thread {} finish crawl history net worth ".format(os.getpid(),
+        threading.currentThread().getName()), start_time=datetime.now(), end_time=datetime.now())
+
 
     def get_fund_company(self):
+        FundLog.objects.create(name="process {} thread {} start 获取基金公司数据 ".format(os.getpid(),
+        threading.currentThread().getName()), start_time=datetime.now(), end_time=datetime.now())
         logger.info("{} start crawl fund company .".format(datetime.now()))
         url = self.nodejs_server_url + "fund_company"
         response = requests.get(url)
@@ -303,6 +310,9 @@ class EastMoneyFund:
             logger.warning("{} can not get fund company! perhaps nodejs crawl server not "
                            "started.".format(datetime.now()))
         logger.info("{} crawl fund company complete.".format(datetime.now()))
+        FundLog.objects.create(name="process {} thread {} start 获取基金公司数据完成 ".format(os.getpid(),
+        threading.currentThread().getName()), start_time=datetime.now(), end_time=datetime.now())
+
 
     def to_int(self, val):
         try:
