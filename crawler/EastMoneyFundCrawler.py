@@ -36,7 +36,7 @@ class EastMoneyFund:
     fund_company_url = 'http://fund.eastmoney.com/Company/default.html'
 
     def __init__(self):
-        FundLog.objects.create(name="开始爬取东方财富基金数据",start_time=datetime.now(),end_time=datetime.now())
+        FundLog.objects.create(name="开始爬取东方财富基金数据", start_time=datetime.now(), end_time=datetime.now())
         self.get_fund_company()
         self.parse_fund_ranking()
         self.parse_diy_fund_ranking()
@@ -44,7 +44,6 @@ class EastMoneyFund:
         logger.warning("------{} All crawling task finished".format(datetime.now()))
         FundLog.objects.create(
             name="爬取东方财富基金数据完成", start_time=datetime.now(), end_time=datetime.now())
-
 
     def parse_fund_ranking(self):
         logger.warning("{} start parsing fund ranking".format(datetime.now()))
@@ -71,8 +70,7 @@ class EastMoneyFund:
                     fund_kwargs['fund_short_name'] = fund[1][:6] if fund[1] else ''
                     kwargs['current_date'] = self.check_date(fund[3])
                     kwargs['current_unit_net_worth'] = self.to_float(fund[4])
-                    kwargs['current_cumulative_net_worth'] = self.to_float(
-                        fund[5])
+                    kwargs['current_cumulative_net_worth'] = self.to_float(fund[5])
                     kwargs['daily'] = self.to_float(fund[6])
                     kwargs['last_week'] = self.to_float(fund[7])
                     kwargs['last_month'] = self.to_float(fund[8])
@@ -83,8 +81,7 @@ class EastMoneyFund:
                     kwargs['last_three_year'] = self.to_float(fund[13])
                     kwargs['this_year'] = self.to_float(fund[14])
                     kwargs['since_founded'] = self.to_float(fund[15])
-                    fund_kwargs['establish_date'] = self.check_date(
-                        fund[16], True)
+                    fund_kwargs['establish_date'] = self.check_date(fund[16], True)
                     kwargs['handling_fee'] = self.to_float(fund[20])
                     fund_kwargs['handling_fee'] = self.to_float(fund[20])
                     fund_ranking_exists = FundHistoricalNetWorthRanking.objects.filter(
@@ -170,8 +167,7 @@ class EastMoneyFund:
                     else:
                         fund_historical_networth_ranking_object_list.append(
                             FundHistoricalNetWorthRanking(**kwargs))
-                    fund_exists = Fund.objects.filter(
-                        fund_code=fund_kwargs['fund_code'])
+                    fund_exists = Fund.objects.filter(fund_code=fund_kwargs['fund_code'])
                     if fund_exists:
                         fund_kwargs.pop('fund_code')
                         fund_kwargs['update_time'] = datetime.now()
@@ -199,7 +195,6 @@ class EastMoneyFund:
         logger.info("{} crawl diy fund ranking completed.".format(datetime.now()))
         FundLog.objects.create(name="爬取自定义基金排行完成", start_time=datetime.now(), end_time=datetime.now())
 
-
     def schedule_history_net_worth(self):
         logger.info("{} start multi thread crawl history net worth.".format(datetime.now()))
         fund_codes = Fund.objects.all().values('fund_code')
@@ -211,12 +206,8 @@ class EastMoneyFund:
         # Close the pool and wait for the work to finish
         pool.close()
         pool.join()
-        logger.info("{} thread exec results:\n{}".format(datetime.now(), thread_exec_results))
-        logger.info("{} crawl history net worth completed.".format(datetime.now()))
 
     def parse_history_net_worth(self, fund_code):
-        FundLog.objects.create(name="process {} thread {} start crawl history net worth ".format(os.getpid(),
-        threading.currentThread().getName()), start_time=datetime.now(),end_time=datetime.now())
         logger.info("process {} thread {} {} start crawl history net worth .".format(
             os.getpid(), threading.currentThread(), datetime.now()))
         params = {
@@ -261,13 +252,11 @@ class EastMoneyFund:
             fund_history_object_list)
         logger.info("process {} thread {} {} crawl history net worth complete.".format(
             os.getpid(), threading.currentThread(), datetime.now()))
-        FundLog.objects.create(name="process {} thread {} finish crawl history net worth ".format(os.getpid(),
-        threading.currentThread().getName()), start_time=datetime.now(), end_time=datetime.now())
-
 
     def get_fund_company(self):
         FundLog.objects.create(name="process {} thread {} start 获取基金公司数据 ".format(os.getpid(),
-        threading.currentThread().getName()), start_time=datetime.now(), end_time=datetime.now())
+                                                                                  threading.currentThread().getName()),
+                               start_time=datetime.now(), end_time=datetime.now())
         logger.info("{} start crawl fund company .".format(datetime.now()))
         url = self.nodejs_server_url + "fund_company"
         response = requests.get(url)
@@ -311,8 +300,8 @@ class EastMoneyFund:
                            "started.".format(datetime.now()))
         logger.info("{} crawl fund company complete.".format(datetime.now()))
         FundLog.objects.create(name="process {} thread {} start 获取基金公司数据完成 ".format(os.getpid(),
-        threading.currentThread().getName()), start_time=datetime.now(), end_time=datetime.now())
-
+                                                                                    threading.currentThread().getName()),
+                               start_time=datetime.now(), end_time=datetime.now())
 
     def to_int(self, val):
         try:
