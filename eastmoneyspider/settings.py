@@ -10,10 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 import os
+import platform
 from pathlib import Path
 import os
 import sys
 from utils.db_config import get_db_config
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
@@ -82,7 +84,7 @@ DB_CONFIG = get_db_config()
 DATABASES = {
     "default": {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': DB_CONFIG['host'],
+        'HOST': 'huaweicloud.yawujia.cn' if 'linux' not in platform.system().lower() else DB_CONFIG['host'],
         'PORT': DB_CONFIG['port'],
         'USER': DB_CONFIG['user'],
         'PASSWORD': DB_CONFIG['password'],

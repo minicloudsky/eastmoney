@@ -11,9 +11,10 @@ class Fund(models.Model):
     fund_type = models.CharField('基金类型', max_length=200, default='')
     fund_short_name = models.CharField('基金简称', max_length=200, default='')
     pinyin_abbreviation_code = models.CharField('基金首字母缩写', max_length=200, default='')
-    establish_date = models.DateField('基金创立日期', default='')
+    establish_date = models.DateField('基金创立日期', default='', null=True)
     handling_fee = models.FloatField('手续费率', default=0)
     can_buy = models.BooleanField('可否购买', default=False)
+    currency = models.CharField('货币', default='人民币', null=True, blank=True)
     insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
     update_time = models.DateTimeField('更新时间', null=True)
     is_deleted = models.IntegerField('是否删除', default=0)
@@ -40,6 +41,11 @@ class FundHistoricalNetWorthRanking(models.Model):
     last_year = models.FloatField('最近一年涨跌', default=0)
     last_two_year = models.FloatField('最近两年涨跌', default=0)
     last_three_year = models.FloatField('最近三年涨跌', default=0)
+    last_five_year = models.FloatField('最近五年涨跌', default=0)
+    ten_thousand_income = models.FloatField('万份收益', default=0)
+    annualized_income_7day = models.FloatField('7天年化收益率', default=0)
+    annualized_income_14day = models.FloatField('14天年化收益率', default=0)
+    annualized_income_28day = models.FloatField('28天年化收益率', default=0)
     this_year = models.FloatField('今年以来涨跌', default=0)
     since_founded = models.FloatField('成立以来涨跌', default=0)
     since_founded_bonus = models.FloatField('成立以来分红', default=0)
@@ -76,6 +82,11 @@ class FundCompany(models.Model):
     insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
     update_time = models.DateTimeField('更新时间', null=True)
     is_deleted = models.IntegerField('是否删除', default=0)
+
+
+class FundManager(models.Model):
+    name = models.CharField('基金经理', default='', max_length=20)
+    manager_id = models.IntegerField('基金经理id', unique=True)
 
 
 # 基金爬取日志
