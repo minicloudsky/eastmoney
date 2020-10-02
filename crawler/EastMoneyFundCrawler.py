@@ -44,15 +44,15 @@ class EastMoneyFund:
 
     def __init__(self):
         FundLog.objects.create(name="开始爬取东方财富基金数据", start_time=datetime.now(), end_time=datetime.now())
-        # self.get_fund_company()
-        # self.parse_fund_ranking()
-        # self.parse_diy_fund_ranking()
+        self.get_fund_company()
+        self.parse_fund_ranking()
+        self.parse_diy_fund_ranking()
         self.schedule_history_net_worth()
-        # self.get_fbs_fund_ranking()
-        # self.get_monetary_fund_ranking()
-        # self.get_asset_manage_fund_ranking()
-        # self.get_hongkong_fund_ranking()
-        # self.get_fund_manager()
+        self.get_fbs_fund_ranking()
+        self.get_monetary_fund_ranking()
+        self.get_asset_manage_fund_ranking()
+        self.get_hongkong_fund_ranking()
+        self.get_fund_manager()
         logger.warning("------{} All crawling task finished".format(datetime.now()))
         FundLog.objects.create(
             name="爬取东方财富基金数据完成", start_time=datetime.now(), end_time=datetime.now())
