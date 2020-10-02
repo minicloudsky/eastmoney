@@ -8,7 +8,8 @@ from urllib.parse import urlencode
 
 import requests
 
-from apps.Fund.models import FundHistoricalNetWorthRanking, FundLog, Fund, FundCompany, FundManager
+from apps.Fund.models import FundManagerRelationship, FundHistoricalNetWorthRanking, FundLog, Fund, FundCompany, \
+    FundManager
 
 logger = logging.getLogger("easymoneyfundcrawler")
 
@@ -53,6 +54,7 @@ class EastMoneyFund:
         self.get_asset_manage_fund_ranking()
         self.get_hongkong_fund_ranking()
         self.get_fund_manager()
+        self.update_fund_type()
         logger.warning("------{} All crawling task finished".format(datetime.now()))
         FundLog.objects.create(
             name="爬取东方财富基金数据完成", start_time=datetime.now(), end_time=datetime.now())
@@ -463,6 +465,14 @@ class EastMoneyFund:
                 name = manager[1] if manager[1] else '',
                 company_id = manager[2] if manager[2] else 0,
                 managed_funds = manager[4].split(',') if manager[4] else ''
+                for fund_code in managed_funds:
+                    relationship = {
+                        'fund_code': fund_code,
+                        'manager_id': manager_id,
+                        'update_time': datetime.now(),
+                    }
+                    FundManagerRelationship.objects.update_or_create(
+                        defaults=relationship, **{'fund_code': fund_code, 'manager_id': manager_id, })
                 working_time = self.to_int(manager[6])
                 current_fund_best_profit = self.to_float(manager[7]) if manager[7] else 0
                 total_asset_manage_amount = self.to_float(manager[10]) if manager[10] else 0
@@ -475,6 +485,29 @@ class EastMoneyFund:
                                                      **{'manager_id': manager_id})
             except Exception as e:
                 logger.warning("parse fund manager error! {}".format(e))
+
+    def update_fund_type(self):
+        logger.info("开始更新基金类型")
+        fund_types = {'pg': '偏股型', 'gp': '股票型', 'hh': '混合型',
+                      'zq': '债券型', 'zs': '指数型', 'qdii': 'QDII', 'fof': 'FOF'}
+        for fund_type, type_name in fund_types.items():
+            request_url = self.nodejs_server_url + 'fund_type' + '&fund_type={}'.format(fund_type)
+            response = self.get(request_url)
+            if not response.json()['datas']:
+                continue
+            funds = response.json()['datas']
+            for fund in funds:
+                try:
+                    fund = fund.split('|')
+                    fund_code = fund[0] if fund[0] else ''
+                    initial_purchase_amount = self.to_float(fund[-5]) if fund[-5] else ''
+                    Fund.objects.filter(fund_code=fund_code).update(
+                        **{'fund_type': type_name,
+                           'update_time': datetime.now(),
+                           'initial_purchase_amount': initial_purchase_amount})
+                except Exception as e:
+                    logger.warning("update fund type error! fund_code {} {}".format(fund_code, e))
+        logger.info("完成基金类型更新")
 
     def to_int(self, val):
         try:
@@ -490,7 +523,7 @@ class EastMoneyFund:
     def to_float(self, val):
         try:
             if val:
-                val = val.replace('%', '').replace('---', '').replace('亿元', '')
+                val = val.replace('%', '').replace('---', '').replace('亿元', '').replace('元', '')
                 val = float(val)
                 return val
             return -9999
@@ -539,7 +572,3 @@ class EastMoneyFund:
         except Exception as e:
             logger.warning("network error! {}".format(e))
             return {}
-
-
-if __name__ == '__main__':
-    easymoney = EastMoneyFund()

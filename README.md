@@ -37,11 +37,18 @@ DATABASES = {
 ```bash
 pip install -r requirements.txt
 ```
+### 数据库迁移
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+### admin 静态文件 迁移
+```bash
+python3 manage.py collectstatic
+```
 
-### 执行爬取基金
+### 执行爬取基金,因为爬虫耗时较长，建议 `nohup` 放后台执行
 
 ```bash
-cd bin
-chmod 777 *.sh
-sh start_server.sh
+nohup python run_spider.py > nohup.out & 
 ```
