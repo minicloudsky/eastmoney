@@ -95,8 +95,27 @@ function getFundManager() {
         });
 }
 
+function getFundType(fund_type) {
+    let page = 1
+    let page_size = 100000
+    let url = "https://fundapi.eastmoney.com/fundtradenew.aspx?ft="
+        + fund_type + "&st=desc&pi=" + page + "&pn=" + page_size
+    console.log("获取基金类型: " + url)
+    return axios
+        .get(url)
+        .then(function (response) {
+            let html_string = response.data.toString(); // 获取网页内容
+            html_string += "\n rankData";
+            return Promise.resolve(eval(html_string));
+        })
+        .catch(function (error) {
+            console.log(error);
+        });
+}
+
 app.get("/", (req, res) => {
     let type = req.query.type;
+    let fund_type = req.query.fund_type;
     if (type === 'fund_ranking') {
         let promise = getFundRanking(); // 发起抓取
         promise.then((response) => {
@@ -119,6 +138,11 @@ app.get("/", (req, res) => {
         });
     } else if (type === 'fund_manager') {
         let promise = getFundManager()
+        promise.then((response) => {
+            res.json(response); // 数据返回
+        });
+    } else if (type === 'fund_type') {
+        let promise = getFundType(fund_type)
         promise.then((response) => {
             res.json(response); // 数据返回
         });

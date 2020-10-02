@@ -6,14 +6,13 @@ from django.db import models
 class Fund(models.Model):
     fund_code = models.CharField('基金代码', default='', unique=True, max_length=20, db_index=True)
     fund_name = models.CharField('基金名称', max_length=200, default='')
-    fund_manager_id = models.CharField('基金经理id', max_length=200, default='')
-    fund_company_id = models.CharField('基金公司id', max_length=200, default='')
     fund_type = models.CharField('基金类型', max_length=200, default='')
     fund_short_name = models.CharField('基金简称', max_length=200, default='')
     pinyin_abbreviation_code = models.CharField('基金首字母缩写', max_length=200, default='')
     establish_date = models.DateField('基金创立日期', default='', null=True)
     handling_fee = models.FloatField('手续费率', default=0)
     can_buy = models.BooleanField('可否购买', default=False)
+    initial_purchase_amount = models.FloatField('起购金额', default=0)
     currency = models.CharField('货币', default='人民币', max_length=20, null=True, blank=True)
     insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
     update_time = models.DateTimeField('更新时间', null=True)
@@ -67,6 +66,7 @@ class FundHistoricalNetWorthRanking(models.Model):
         unique_together = ('fund_code', 'current_date')
 
 
+# 基金公司
 class FundCompany(models.Model):
     company_id = models.CharField('基金公司 id', max_length=30, unique=True)
     company_name = models.CharField('基金公司名', default='', max_length=100)
@@ -87,6 +87,7 @@ class FundCompany(models.Model):
         return 'http://fund.eastmoney.com/company/{}.html'.format(self.company_id)
 
 
+# 基金经理
 class FundManager(models.Model):
     name = models.CharField('基金经理', default='', max_length=20)
     manager_id = models.CharField('基金经理 id', unique=True, max_length=20)
@@ -100,6 +101,18 @@ class FundManager(models.Model):
 
     def get_fund_manager_url(self):
         return 'http://fund.eastmoney.com/manager/{}.html'.format(self.manager_id)
+
+
+# 基金与基金经理关系，多对多中间表
+class FundManagerRelationship(models.Model):
+    fund_code = models.CharField('基金代码', default='', max_length=20)
+    manager_id = models.CharField('基金经理 id', max_length=20)
+    insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
+    update_time = models.DateTimeField('更新时间', null=True)
+    is_deleted = models.IntegerField('是否删除', default=0)
+
+    class Meta:
+        unique_together = ('fund_code', 'manager_id')
 
 
 # 基金爬取日志
