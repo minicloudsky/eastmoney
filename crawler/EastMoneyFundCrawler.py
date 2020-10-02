@@ -97,7 +97,7 @@ class EastMoneyFund:
                     defaults['update_time'] = datetime.now()
                     FundHistoricalNetWorthRanking.objects.update_or_create(
                         defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
-                    Fund.objects.update_or_create(defaults=defaults, **{'fund_code': fund_code})
+                    Fund.objects.update_or_create(defaults=fund_defaults, **{'fund_code': fund_code})
                 except Exception as e:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
                         defaults, fund_defaults, e))
@@ -153,7 +153,7 @@ class EastMoneyFund:
                     fund_defaults['update_time'] = datetime.now()
                     FundHistoricalNetWorthRanking.objects.update_or_create(
                         defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
-                    Fund.objects.update_or_create(defaults=defaults, **{'fund_code': fund_code})
+                    Fund.objects.update_or_create(defaults=fund_defaults, **{'fund_code': fund_code})
                 except Exception as e:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
                         defaults, fund_defaults, e))
