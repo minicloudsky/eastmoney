@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PROJECT_PATH=/home/.jywcode/EastMoneySpider
+PROJECT_PATH=/home/.jywcode/eastmoneyspider
 DESC=eastmoney_django_server
 NAME=eastmoney_django_server
 PIDFILE=$PROJECT_PATH/uwsgi/uwsgi.pid
@@ -9,7 +9,7 @@ DAEMONIZE_FILE=$PROJECT_PATH/uwsgi/$NAME.log
 # shellcheck disable=SC2164
 cd $PROJECT_PATH
 source venv/bin/activate
-pip install -r requirements.txt
+pip3  install -r requirements.txt
 
 server_start() {
   uwsgi --ini $PROJECT_PATH/uwsgi/eastmoney_uwsgi.ini --stats=$STATUS_FILE --pidfile=$PIDFILE --daemonize=$DAEMONIZE_FILE

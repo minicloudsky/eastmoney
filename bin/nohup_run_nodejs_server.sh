@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PROJECT_PATH=/home/.jywcode/EastMoneySpider/crawler_nodejs
+PROJECT_PATH=/home/.jywcode/eastmoneyspider/crawler_nodejs
 # shellcheck disable=SC2164
 cd $PROJECT_PATH
 npm install

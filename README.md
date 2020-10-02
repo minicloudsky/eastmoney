@@ -46,7 +46,12 @@ python manage.py migrate
 ```bash
 python3 manage.py collectstatic
 ```
+### 启动服务
+```bash
 
+sh bin/start_server.sh
+
+```
 ### 执行爬取基金,因为爬虫耗时较长，建议 `nohup` 放后台执行
 
 ```bash
