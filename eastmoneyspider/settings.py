@@ -10,9 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 import os
+import platform
 from pathlib import Path
 import os
 import sys
+from utils.db_config import get_db_config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -45,7 +47,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware'
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -78,13 +80,14 @@ WSGI_APPLICATION = 'eastmoneyspider.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
+DB_CONFIG = get_db_config()
 DATABASES = {
     "default": {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': 'localhost',
-        'PORT': 3306,
-        'USER': 'root',
-        'PASSWORD': 'root',
+        'HOST': 'huaweicloud.yawujia.cn' if 'linux' not in platform.system().lower() else DB_CONFIG['host'],
+        'PORT': DB_CONFIG['port'],
+        'USER': DB_CONFIG['user'],
+        'PASSWORD': DB_CONFIG['password'],
         'NAME': 'eastmoney'  # TODO 数据库名需要改变
     }
 }

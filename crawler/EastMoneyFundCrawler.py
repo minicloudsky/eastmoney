@@ -1,11 +1,14 @@
+import copy
 import logging
-from datetime import datetime
-from urllib.parse import urlencode
-import threading
-import requests
 import os
-from apps.Fund.models import FundHistoricalNetWorthRanking, FundLog, Fund, FundCompany
+import threading
+from datetime import datetime
 from multiprocessing.dummy import Pool as ThreadPool
+from urllib.parse import urlencode
+
+import requests
+
+from apps.Fund.models import FundHistoricalNetWorthRanking, FundLog, Fund, FundCompany, FundManager
 
 logger = logging.getLogger("easymoneyfundcrawler")
 
@@ -16,7 +19,7 @@ class EastMoneyFund:
     # 当天日期
     date = datetime.strftime(datetime.now(), '%Y-%m-%d')
     # 默认错误日期，当日期处理错误时候，将日期设置为 这个值
-    default_error_date = '1976-01-01'
+    default_error_date = datetime.strptime('1976-01-01', '%Y-%m-%d')
     # 默认基金历史数据最大条数
     default_history_fund_max_size = 50 * 365
     # 默认最大基金数
@@ -33,12 +36,26 @@ class EastMoneyFund:
     # history_net_worth_url = 'http://api.fund.eastmoney.com/f10/lsjz?callback=jQuery18306004163724110205_1600526195568&fundCode=150304&pageIndex=61&pageSize=20&startDate=&endDate=&_=1600569328705'
     history_net_worth_url = 'http://api.fund.eastmoney.com/f10/lsjz?'
     fund_company_url = 'http://fund.eastmoney.com/Company/default.html'
+    monetary_fund_url = 'http://api.fund.eastmoney.com/FundRank/GetHbRankList?intCompany=0&MinsgType=&IsSale=0&strSortCol=SYL_Y&orderType=desc&pageIndex=1&pageSize=500000&_=1601519558625'
+    asset_manage_fund_url = 'http://api.fund.eastmoney.com/FundRank/GetLcRankList?intCompany=0&MinsgType=undefined' \
+                            '&IsSale=0&strSortCol=SYL_Z&orderType=desc&pageIndex={}&pageSize={}&FBQ='.format(
+        1, 500000)
+    overseas_fund_url = 'http://overseas.1234567.com.cn/overseasapi/OpenApiHander.ashx?api=HKFDApi&m=MethodFundList&action=1&pageindex={}&pagesize={}&dy=1&date1=1990-10-02&date2={}&sortfield=W&sorttype=-1&isbuy=0'
 
     def __init__(self):
+        FundLog.objects.create(name="开始爬取东方财富基金数据", start_time=datetime.now(), end_time=datetime.now())
+        self.get_fund_company()
         self.parse_fund_ranking()
         self.parse_diy_fund_ranking()
         self.schedule_history_net_worth()
-        self.get_fund_company()
+        self.get_fbs_fund_ranking()
+        self.get_monetary_fund_ranking()
+        self.get_asset_manage_fund_ranking()
+        self.get_hongkong_fund_ranking()
+        self.get_fund_manager()
+        logger.warning("------{} All crawling task finished".format(datetime.now()))
+        FundLog.objects.create(
+            name="爬取东方财富基金数据完成", start_time=datetime.now(), end_time=datetime.now())
 
     def parse_fund_ranking(self):
         logger.warning("{} start parsing fund ranking".format(datetime.now()))
@@ -46,59 +63,44 @@ class EastMoneyFund:
         log_kwargs = {}
         log_kwargs['name'] = '爬取基金排行'
         log_kwargs['start_time'] = datetime.now()
-        response = requests.get(url)
-        funds_json = response.json()
+        response = self.get(url)
+        funds_json = copy.copy(response.json())
         if funds_json:
-            all_fund = funds_json['datas']
-            fund_historical_networth_ranking_object_list = []
-            fund_object_list = []
+            all_fund = copy.copy(funds_json['datas'])
             for fund in all_fund:
-                kwargs = {}
-                fund_kwargs = {}
+                defaults = {}
+                fund_defaults = {}
                 try:
                     fund = fund.split(',')
-                    fund_kwargs['fund_code'] = fund[0] if fund[0] else ''
-                    kwargs['fund_code'] = fund[0] if fund[0] else ''
-                    fund_kwargs['fund_name'] = fund[1] if fund[1] else ''
-                    fund_kwargs['can_buy'] = True
-                    fund_kwargs['pinyin_abbreviation_code'] = fund[2] if fund[2] else ''
-                    fund_kwargs['fund_short_name'] = fund[1][:6] if fund[1] else ''
-                    kwargs['current_date'] = self.check_date(fund[3])
-                    kwargs['current_unit_net_worth'] = self.to_float(fund[4])
-                    kwargs['current_cumulative_net_worth'] = self.to_float(fund[5])
-                    kwargs['daily'] = self.to_float(fund[6])
-                    kwargs['last_week'] = self.to_float(fund[7])
-                    kwargs['last_month'] = self.to_float(fund[8])
-                    kwargs['last_three_month'] = self.to_float(fund[9])
-                    kwargs['last_six_month'] = self.to_float(fund[10])
-                    kwargs['last_year'] = self.to_float(fund[11])
-                    kwargs['last_two_year'] = self.to_float(fund[12])
-                    kwargs['last_three_year'] = self.to_float(fund[13])
-                    kwargs['this_year'] = self.to_float(fund[14])
-                    kwargs['since_founded'] = self.to_float(fund[15])
-                    fund_kwargs['establish_date'] = self.check_date(fund[16], True)
-                    kwargs['handling_fee'] = self.to_float(fund[20])
-                    fund_kwargs['handling_fee'] = self.to_float(fund[20])
-                    fund_ranking_exists = FundHistoricalNetWorthRanking.objects.filter(
-                        fund_code=kwargs['fund_code'], current_date=kwargs['current_date'])
-                    if fund_ranking_exists:
-                        kwargs.pop('fund_code')
-                        kwargs['update_time'] = datetime.now()
-                        fund_ranking_exists.update(**kwargs)
-                    else:
-                        fund_historical_networth_ranking_object_list.append(FundHistoricalNetWorthRanking(**kwargs))
-                    fund_exists = Fund.objects.filter(fund_code=fund_kwargs['fund_code'])
-                    if fund_exists:
-                        fund_kwargs.pop('fund_code')
-                        fund_kwargs['update_time'] = datetime.now()
-                        fund_exists.update(**fund_kwargs)
-                    else:
-                        fund_object_list.append(Fund(**fund_kwargs))
+                    fund_code = fund[0] if fund[0] else ''
+                    fund_defaults['fund_name'] = fund[1] if fund[1] else ''
+                    fund_defaults['can_buy'] = True
+                    fund_defaults['pinyin_abbreviation_code'] = fund[2] if fund[2] else ''
+                    fund_defaults['fund_short_name'] = fund[1][:6] if fund[1] else ''
+                    current_date = self.check_date(fund[3])
+                    defaults['current_unit_net_worth'] = self.to_float(fund[4])
+                    defaults['current_cumulative_net_worth'] = self.to_float(fund[5])
+                    defaults['daily'] = self.to_float(fund[6])
+                    defaults['last_week'] = self.to_float(fund[7])
+                    defaults['last_month'] = self.to_float(fund[8])
+                    defaults['last_three_month'] = self.to_float(fund[9])
+                    defaults['last_six_month'] = self.to_float(fund[10])
+                    defaults['last_year'] = self.to_float(fund[11])
+                    defaults['last_two_year'] = self.to_float(fund[12])
+                    defaults['last_three_year'] = self.to_float(fund[13])
+                    defaults['this_year'] = self.to_float(fund[14])
+                    defaults['since_founded'] = self.to_float(fund[15])
+                    fund_defaults['establish_date'] = self.check_date(fund[16], True)
+                    defaults['handling_fee'] = self.to_float(fund[20])
+                    fund_defaults['handling_fee'] = self.to_float(fund[20])
+                    fund_defaults['update_time'] = datetime.now()
+                    defaults['update_time'] = datetime.now()
+                    FundHistoricalNetWorthRanking.objects.update_or_create(
+                        defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
+                    Fund.objects.update_or_create(defaults=fund_defaults, **{'fund_code': fund_code})
                 except Exception as e:
-                    logger.warning("kwargs :{} fund_kwargs: {} error {}".format(kwargs, fund_kwargs, e))
-                    pass
-            FundHistoricalNetWorthRanking.objects.bulk_create(fund_historical_networth_ranking_object_list)
-            Fund.objects.bulk_create(fund_object_list)
+                    logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
+                        defaults, fund_defaults, e))
             log_kwargs['end_time'] = datetime.now()
             log_kwargs['total_fund'] = funds_json['allNum']
             log_kwargs['stock_fund_num'] = funds_json['gpNum']
@@ -113,61 +115,48 @@ class EastMoneyFund:
             FundLog.objects.create(**log_kwargs)
         else:
             logger.warning("can not get nodejs server data.")
-            pass
         logger.info("{} crawl fund ranking completed.".format(datetime.now()))
 
     def parse_diy_fund_ranking(self):
         logger.info("{} start crawl diy fund ranking".format(datetime.now()))
+        FundLog.objects.create(name="爬取自定义基金排行", start_time=datetime.now(), end_time=datetime.now())
         url = self.nodejs_server_url + "diy_fund_ranking"
         log_kwargs = {}
         log_kwargs['name'] = '爬取基金从成立以来的净值和分红情况'
-        response = requests.get(url)
-        funds_json = response.json()
-        fund_object_list = []
-        fund_historical_networth_ranking_object_list = []
+        response = self.get(url)
+        funds_json = copy.copy(response.json())
         if funds_json:
             all_fund = funds_json['datas']
             for fund in all_fund:
-                fund_kwargs = {}
-                kwargs = {}
+                fund_defaults = {}
+                defaults = {}
                 try:
                     fund = fund.split(',')
-                    fund_kwargs['fund_code'] = fund[0] if fund[0] else ''
-                    kwargs['fund_code'] = fund[0] if fund[0] else ''
-                    fund_kwargs['fund_name'] = fund[1] if fund[1] else ''
-                    fund_kwargs['pinyin_abbreviation_code'] = fund[2] if fund[2] else ''
-                    fund_kwargs['fund_short_name'] = fund[1][:6] if fund[1] else ''
-                    kwargs['since_founded'] = self.to_float(fund[3])
-                    kwargs['since_founded_bonus'] = self.to_float(fund[4])
-                    kwargs['since_founded_bonus_num'] = self.to_int(fund[5])
-                    fund_kwargs['establish_date'] = self.check_date(fund[6])
-                    kwargs['start_unit_net_worth'] = self.to_float(fund[7])
-                    kwargs['start_cumulative_net_worth'] = self.to_float(fund[8])
-                    kwargs['current_date'] = self.check_date(fund[9])
-                    kwargs['current_unit_net_worth'] = self.to_float(fund[10])
-                    kwargs['current_cumulative_net_worth'] = self.to_float(fund[11])
-                    fund_kwargs['handling_fee'] = self.to_float(fund[14])
-                    kwargs['handling_fee'] = self.to_float(fund[14])
-                    fund_ranking_exists = FundHistoricalNetWorthRanking.objects.filter(
-                        fund_code=kwargs['fund_code'], current_date=kwargs['current_date'])
-                    if fund_ranking_exists:
-                        kwargs.pop('fund_code')
-                        kwargs['update_time'] = datetime.now()
-                        fund_ranking_exists.update(**kwargs)
-                    else:
-                        fund_historical_networth_ranking_object_list.append(FundHistoricalNetWorthRanking(**kwargs))
-                    fund_exists = Fund.objects.filter(fund_code=fund_kwargs['fund_code'])
-                    if fund_exists:
-                        fund_kwargs.pop('fund_code')
-                        fund_kwargs['update_time'] = datetime.now()
-                        fund_exists.update(**fund_kwargs)
-                    else:
-                        fund_object_list.append(Fund(**fund_kwargs))
+                    fund_code = fund[0] if fund[0] else ''
+                    current_date = self.check_date(fund[9])
+                    fund_defaults['fund_name'] = fund[1] if fund[1] else ''
+                    fund_defaults['pinyin_abbreviation_code'] = fund[2] if fund[2] else ''
+                    fund_defaults['fund_short_name'] = fund[1][:6] if fund[1] else ''
+                    defaults['since_founded'] = self.to_float(fund[3])
+                    defaults['since_founded_bonus'] = self.to_float(fund[4])
+                    defaults['since_founded_bonus_num'] = self.to_int(fund[5])
+                    fund_defaults['establish_date'] = self.check_date(fund[6])
+                    defaults['start_unit_net_worth'] = self.to_float(fund[7])
+                    defaults['start_cumulative_net_worth'] = self.to_float(
+                        fund[8])
+                    defaults['current_unit_net_worth'] = self.to_float(fund[10])
+                    defaults['current_cumulative_net_worth'] = self.to_float(
+                        fund[11])
+                    fund_defaults['handling_fee'] = self.to_float(fund[14])
+                    defaults['handling_fee'] = self.to_float(fund[14])
+                    defaults['update_time'] = datetime.now()
+                    fund_defaults['update_time'] = datetime.now()
+                    FundHistoricalNetWorthRanking.objects.update_or_create(
+                        defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
+                    Fund.objects.update_or_create(defaults=fund_defaults, **{'fund_code': fund_code})
                 except Exception as e:
-                    logger.warning("kwargs :{} fund_kwargs: {} error {}".format(kwargs, fund_kwargs, e))
-                    pass
-            FundHistoricalNetWorthRanking.objects.bulk_create(fund_historical_networth_ranking_object_list)
-            Fund.objects.bulk_create(fund_object_list)
+                    logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
+                        defaults, fund_defaults, e))
             log_kwargs['end_time'] = datetime.now()
             log_kwargs['total_fund'] = funds_json['allNum']
             log_kwargs['stock_fund_num'] = funds_json['gpNum']
@@ -180,102 +169,312 @@ class EastMoneyFund:
             log_kwargs['lof_fund_num'] = funds_json['lofNum']
         else:
             logger.warning("get div_fund_ranking json data error!")
-            pass
         logger.info("{} crawl diy fund ranking completed.".format(datetime.now()))
+        FundLog.objects.create(name="爬取自定义基金排行完成", start_time=datetime.now(), end_time=datetime.now())
 
     def schedule_history_net_worth(self):
         logger.info("{} start multi thread crawl history net worth.".format(datetime.now()))
-        fund_codes = Fund.objects.all().values('fund_code')
-        fund_codes = [x['fund_code'] for x in fund_codes]
+        funds = Fund.objects.all()
+        fund_codes = [fund.fund_code for fund in funds if fund.fund_type != 'HK']
         pool = ThreadPool(self.thread_num)
         # 在每个线程中执行任务
-        thread_exec_results = pool.map(self.parse_history_net_worth, fund_codes)
+        thread_exec_results = pool.map(
+            self.parse_history_net_worth, fund_codes)
         # Close the pool and wait for the work to finish
         pool.close()
         pool.join()
-        logger.info("{} thread exec results:\n{}".format(datetime.now(), thread_exec_results))
-        logger.info("{} crawl history net worth completed.".format(datetime.now()))
 
     def parse_history_net_worth(self, fund_code):
-        logger.info("thread {} {} start crawl history net worth .".format(threading.currentThread(), datetime.now()))
+        logger.info("process {} thread {} {} start crawl history net worth .".format(
+            os.getpid(), threading.currentThread(), datetime.now()))
         params = {
             'fundCode': fund_code,
             'pageIndex': 1,
             'pageSize': self.default_history_fund_max_size,
             '_': '1600569328705',
         }
-        fund_history_object_list = []
         request_url = self.history_net_worth_url + urlencode(params)
-        response = requests.get(request_url, headers=self.headers)
-        history_net_worth_json = response.json()
+        response = self.get(request_url)
+        history_net_worth_json = copy.copy(response.json())
         if history_net_worth_json and history_net_worth_json.get('Data').get('LSJZList'):
             history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
             for history_net_worth in history_net_worths:
-                kwargs = {'fund_code': fund_code}
+                defaults = {}
                 try:
-                    kwargs['current_date'] = self.check_date(history_net_worth['FSRQ'])
-                    kwargs['current_unit_net_worth'] = self.to_float(history_net_worth['DWJZ'])
-                    kwargs['current_cumulative_net_worth'] = self.to_float(history_net_worth['LJJZ'])
-                    kwargs['daily'] = self.to_float(history_net_worth['JZZZL'])
-                    kwargs['subscription_status'] = history_net_worth['SGZT']
-                    kwargs['redemption_status'] = history_net_worth['SHZT']
-                    kwargs['dividend_distribution'] = history_net_worth['FHSP']
-                    fund_exists = FundHistoricalNetWorthRanking.objects.filter(
-                        fund_code=kwargs['fund_code'], current_date=kwargs['current_date'])
-                    if fund_exists:
-                        kwargs.pop('fund_code')
-                        kwargs['update_time'] = datetime.now()
-                        fund_exists.update(**kwargs)
-                    else:
-                        fund_history_object_list.append(FundHistoricalNetWorthRanking(**kwargs))
+                    current_date = self.check_date(history_net_worth['FSRQ'])
+                    defaults['current_unit_net_worth'] = self.to_float(history_net_worth['DWJZ'])
+                    defaults['current_cumulative_net_worth'] = self.to_float(
+                        history_net_worth['LJJZ'])
+                    defaults['daily'] = self.to_float(history_net_worth['JZZZL'])
+                    defaults['subscription_status'] = history_net_worth['SGZT']
+                    defaults['redemption_status'] = history_net_worth['SHZT']
+                    defaults['dividend_distribution'] = history_net_worth['FHSP']
+                    defaults['update_time'] = datetime.now()
+                    FundHistoricalNetWorthRanking.objects.update_or_create(
+                        defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
                 except Exception as e:
-                    logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {}".format(
-                        datetime.now(), fund_code, kwargs))
-                    pass
-        FundHistoricalNetWorthRanking.objects.bulk_create(fund_history_object_list)
-        logger.info("thread {} {} crawl history net worth complete.".format(threading.currentThread(), datetime.now()))
+                    logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {} exception : {}".format(
+                        datetime.now(), fund_code, defaults, e))
+        logger.info("process {} thread {} {} crawl history net worth complete.".format(
+            os.getpid(), threading.currentThread(), datetime.now()))
 
     def get_fund_company(self):
+        FundLog.objects.create(name="process {} thread {} start 获取基金公司数据 ".format(os.getpid(),
+                                                                                  threading.currentThread().getName()),
+                               start_time=datetime.now(), end_time=datetime.now())
         logger.info("{} start crawl fund company .".format(datetime.now()))
         url = self.nodejs_server_url + "fund_company"
-        response = requests.get(url)
+        response = self.get(url)
         funds_company_json = response.json()
         funds_company_object_list = []
         if funds_company_json and funds_company_json.get('datas'):
             funds_company = funds_company_json.get('datas')
             for company in funds_company:
-                kwargs = {}
+                defaults = {}
                 try:
-                    kwargs['company_id'] = company[0] if company[0] else ''
-                    kwargs['company_name'] = company[1] if company[1] else ''
-                    kwargs['establish_date'] = self.check_date(company[2])
-                    kwargs['total_fund_num'] = self.to_int(company[3])
-                    kwargs['general_manager'] = company[4] if company[4] else ''
-                    kwargs['pinyin_abbreviation_code'] = company[5] if company[5] else ''
-                    kwargs['total_manage_amount'] = self.to_float(company[7])
-                    kwargs['tianxiang_star'] = len(company[8]) if company[8] else 0
-                    kwargs['company_short_name'] = company[9] if company[9] else ''
+                    company_id = company[0] if company[0] else ''
+                    defaults['company_name'] = company[1] if company[1] else ''
+                    defaults['establish_date'] = self.check_date(company[2])
+                    defaults['total_fund_num'] = self.to_int(company[3])
+                    defaults['general_manager'] = company[4] if company[4] else ''
+                    defaults['pinyin_abbreviation_code'] = company[5] if company[5] else ''
+                    defaults['total_manage_amount'] = self.to_float(company[7])
+                    defaults['tianxiang_star'] = len(company[8]) if company[8] else 0
+                    defaults['company_short_name'] = company[9] if company[9] else ''
                     if company[11]:
                         update_date = company[11].split(' ')
                         update_date = update_date[0].replace('/', '-')
                         update_date = self.check_date(update_date)
-                        kwargs['update_date'] = update_date
+                        defaults['update_date'] = update_date
+                        defaults['update_time'] = datetime.now()
                     else:
-                        kwargs['update_date'] = self.default_error_date
-                    is_exist = FundCompany.objects.filter(company_id=kwargs['company_id'])
-                    if is_exist:
-                        kwargs.pop('company_id')
-                        kwargs['update_time'] = datetime.now()
-                        FundCompany.objects.update(**kwargs)
-                    else:
-                        funds_company_object_list.append(FundCompany(**kwargs))
+                        defaults['update_date'] = self.default_error_date
+                    FundCompany.objects.update_or_create(defaults=defaults,
+                                                         **{'company_id': company_id})
                 except Exception as e:
-                    logger.warning("{} parse fund compny error! {} -{} {}".format(datetime.now(), company, kwargs, e))
+                    logger.warning("{} parse fund compny error! {} -{} {}".format(datetime.now(), company, defaults, e))
             FundCompany.objects.bulk_create(funds_company_object_list)
         else:
             logger.warning("{} can not get fund company! perhaps nodejs crawl server not "
                            "started.".format(datetime.now()))
         logger.info("{} crawl fund company complete.".format(datetime.now()))
+        FundLog.objects.create(name="process {} thread {} start 获取基金公司数据完成 ".format(os.getpid(),
+                                                                                    threading.currentThread().getName()),
+                               start_time=datetime.now(), end_time=datetime.now())
+
+    def get_fbs_fund_ranking(self):
+        logger.warning("start get fbs fund ranking.")
+        url = self.nodejs_server_url + "fbs_fund_ranking"
+        response = self.get(url)
+        fbs_funds = response.json()
+        if not fbs_funds['datas']:
+            logger.warning("get_fbs_fund_ranking empty data.")
+            return
+        all_fbs_funds = fbs_funds['allRecords']
+        logger.info("场内交易基金总数: {}".format(all_fbs_funds))
+        for fbs_fund in fbs_funds['datas']:
+            try:
+                fbs_fund = fbs_fund.split(',')
+                fund_code = fbs_fund[0] if fbs_fund[0] else ''
+                current_date = self.check_date(fbs_fund[3]) if fbs_fund[3] else ''
+                fund_defaults = {
+                    'fund_name': fbs_fund[1] if fbs_fund[1] else '',
+                    'pinyin_abbreviation_code': fbs_fund[2] if fbs_fund[2] else '',
+                    'fund_type': fbs_fund[-2] if fbs_fund[-2] else '',
+                    'establish_date': self.check_date(fbs_fund[15]) if fbs_fund[15] else '',
+                    'update_time': datetime.now(),
+                }
+                defaults = {
+                    'current_unit_net_worth': self.to_float(fbs_fund[4]),
+                    'current_cumulative_net_worth': self.to_float(fbs_fund[5]),
+                    'last_week': self.to_float(fbs_fund[6]),
+                    'last_month': self.to_float(fbs_fund[7]),
+                    'last_three_month': self.to_float(fbs_fund[8]),
+                    'last_six_month': self.to_float(fbs_fund[9]),
+                    'last_year': self.to_float(fbs_fund[10]),
+                    'last_two_year': self.to_float(fbs_fund[11]),
+                    'last_three_year': self.to_float(fbs_fund[12]),
+                    'this_year': self.to_float(fbs_fund[13]),
+                    'since_founded': self.to_float(fbs_fund[14]),
+                    'update_time': datetime.now(),
+                }
+                Fund.objects.update_or_create(defaults=fund_defaults, **{'fund_code': fund_code})
+                FundHistoricalNetWorthRanking.objects.update_or_create(
+                    defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
+            except Exception as e:
+                logger.warning("get fbs fund error {}".format(e))
+                pass
+        logger.warning("finish get fbs fund ranking.")
+
+    def get_monetary_fund_ranking(self):
+        logger.warning("开始爬取货币基金排行")
+        response = self.get(self.monetary_fund_url)
+        datas = response.json()
+        if not datas:
+            logger.warning("货币基金数据为空!")
+            return
+        logger.warning("货币基金总数: {}".format(datas['TotalCount']))
+        for fund in datas['Data']:
+            try:
+                fund_code = fund['FCODE'] if fund['FCODE'] else ''
+                current_date = self.check_date(fund['FSRQ']) if fund['FSRQ'] else self.default_error_date
+                fund_defaults = {
+                    'fund_name': fund['SHORTNAME'],
+                    'pinyin_abbreviation_code': fund['ABBNAME'],
+                    'can_buy': 1 if fund['ISBUY'] == 1 else 0,
+                    'fund_type': fund['FTYPE'],
+                    'update_time': datetime.now(),
+                    'establish_date': self.default_error_date,
+                }
+                defaults = {
+                    'ten_thousand_income': self.to_float(fund['DWJZ']),
+                    'annualized_income_7day': self.to_float(fund['LJJZ']),
+                    'annualized_income_14day': self.to_float(fund['FTYI']),
+                    'annualized_income_28day': self.to_float(fund['TEYI']),
+                    'current_unit_net_worth': self.to_float(fund['JZ']),
+                    'last_month': self.to_float(fund['SYL_Y']),
+                    'last_three_month': self.to_float(fund['SYL_3Y']),
+                    'last_six_month': self.to_float(fund['SYL_6Y']),
+                    'last_year': self.to_float(fund['SYL_1N']),
+                    'last_two_year': self.to_float(fund['SYL_2N']),
+                    'last_three_year': self.to_float(fund['SYL_3N']),
+                    'last_five_year': self.to_float(fund['SYL_5N']),
+                    'this_year': self.to_float(fund['SYL_JN']),
+                    'since_founded': self.to_float(fund['SYL_LN']),
+                    'handling_fee': self.to_float(fund['RATE']),
+                }
+                Fund.objects.update_or_create(defaults=fund_defaults, **{'fund_code': fund_code})
+                FundHistoricalNetWorthRanking.objects.update_or_create(
+                    defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
+            except Exception as e:
+                logger.warning("exception in monetary_fund : {}".format(e))
+                pass
+        logger.warning("爬取货币基金完成")
+
+    def get_asset_manage_fund_ranking(self):
+        logger.warning("开始爬取理财基金排行")
+        response = self.get(self.asset_manage_fund_url)
+        datas = response.json()
+        if not datas:
+            logger.warning("理财基金数据为空!")
+            return
+        logger.warning("理财基金总数: {}".format(datas['TotalCount']))
+        for fund in datas['Data']:
+            try:
+                fund_code = fund['FCODE'] if fund['FCODE'] else ''
+                current_date = self.check_date(fund['FSRQ']) if fund['FSRQ'] else self.default_error_date
+                fund_defaults = {
+                    'fund_name': fund['SHORTNAME'],
+                    'pinyin_abbreviation_code': fund['ABBNAME'],
+                    'can_buy': 1 if fund['ISBUY'] == 1 else 0,
+                    'fund_type': fund['FTYPE'],
+                    'update_time': datetime.now(),
+                    'establish_date': self.default_error_date,
+                }
+                defaults = {
+                    'ten_thousand_income': self.to_float(fund['DWJZ']),
+                    'annualized_income_7day': self.to_float(fund['LJJZ']),
+                    'annualized_income_14day': self.to_float(fund['FTYI']),
+                    'annualized_income_28day': self.to_float(fund['TEYI']),
+                    'current_unit_net_worth': self.to_float(fund['JZ']),
+                    'last_month': self.to_float(fund['SYL_Y']),
+                    'last_three_month': self.to_float(fund['SYL_3Y']),
+                    'last_six_month': self.to_float(fund['SYL_6Y']),
+                    'this_year': self.to_float(fund['SYL_JN']),
+                    'since_founded': self.to_float(fund['SYL_LN']),
+                    'handling_fee': self.to_float(fund['RATE']),
+                }
+                Fund.objects.update_or_create(defaults=fund_defaults, **{'fund_code': fund_code})
+                FundHistoricalNetWorthRanking.objects.update_or_create(
+                    defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
+            except Exception as e:
+                logger.warning("exception in asset manage fund : {}".format(e))
+                pass
+        logger.warning("爬取理财基金完成")
+
+    def get_hongkong_fund_ranking(self):
+        logger.warning("开始爬取香港基金排行")
+        try:
+            response = self.get(self.overseas_fund_url.format(1, 50, self.date))
+            datas = response.json()
+            if not datas:
+                logger.warning("香港基金数据为空!")
+                return
+            logger.warning("香港基金总数: {}".format(datas['TotalCount']))
+        except Exception as e:
+            logger.warning("Exception in get hk fund {}".format(e))
+        total_page = datas['TotalCount'] / 50 + 1 if datas['TotalCount'] else 10
+        for page in range(int(total_page) + 1):
+            response = self.get(self.overseas_fund_url.format(page, 50, self.date))
+            try:
+                datas = response.json()
+            except Exception as e:
+                logger.warning("Exception in get hk fund {}".format(e))
+                datas = None
+            if not datas:
+                break
+            for fund in datas['Data']:
+                if not datas:
+                    logger.warning("香港基金数据为空!")
+                    return
+                try:
+                    fund_code = fund['FCODE'] if fund['FCODE'] else ''
+                    current_date = self.check_date(fund['JZRQ']) if fund['JZRQ'] else self.default_error_date
+                    fund_defaults = {
+                        'fund_name': fund['FULLNAME'],
+                        'fund_short_name': fund['SHORTNAME'],
+                        'can_buy': 1 if fund['ISBUY'] == 1 else 0,
+                        'fund_type': 'HK',
+                        'currency': fund['CURRENCY'] if fund['CURRENCY'] else '',
+                        'update_time': datetime.now(),
+                        'establish_date': self.default_error_date,
+                    }
+                    defaults = {
+                        'last_week': self.to_float(fund['W']),
+                        'current_unit_net_worth': self.to_float(fund['NAV']),
+                        'last_month': self.to_float(fund['M']),
+                        'last_three_month': self.to_float(fund['Q']),
+                        'last_six_month': self.to_float(fund['HY']),
+                        'last_year': self.to_float(fund['Y']),
+                        'last_two_year': self.to_float(fund['TWY']),
+                        'last_three_year': self.to_float(fund['TRY']),
+                        'this_year': self.to_float(fund['SY']),
+                        'since_founded': self.to_float(fund['SE']),
+                    }
+                    Fund.objects.update_or_create(defaults=fund_defaults, **{'fund_code': fund_code})
+                    FundHistoricalNetWorthRanking.objects.update_or_create(
+                        defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
+                except Exception as e:
+                    logger.warning("exception in hk fund : {}".format(e))
+                    pass
+        logger.warning("爬取香港基金完成")
+
+    def get_fund_manager(self):
+        request_url = self.nodejs_server_url + "fund_manager"
+        response = self.get(request_url)
+        datas = response.json()
+        total_manager = datas['record']
+        logger.warning("基金经理总数: {}".format(total_manager))
+        managers = datas['data']
+        for manager in managers:
+            try:
+                defaults = {}
+                manager_id = manager[0] if manager[0] else 0
+                name = manager[1] if manager[1] else '',
+                company_id = manager[2] if manager[2] else 0,
+                managed_funds = manager[4].split(',') if manager[4] else ''
+                working_time = self.to_int(manager[6])
+                current_fund_best_profit = self.to_float(manager[7]) if manager[7] else 0
+                total_asset_manage_amount = self.to_float(manager[10]) if manager[10] else 0
+                defaults['name'] = name[0] if name[0] else ''
+                defaults['company_id'] = company_id[0] if company_id[0] else ''
+                defaults['working_time'] = working_time
+                defaults['current_fund_best_profit'] = current_fund_best_profit
+                defaults['total_asset_manage_amount'] = total_asset_manage_amount
+                FundManager.objects.update_or_create(defaults=defaults,
+                                                     **{'manager_id': manager_id})
+            except Exception as e:
+                logger.warning("parse fund manager error! {}".format(e))
 
     def to_int(self, val):
         try:
@@ -291,7 +490,7 @@ class EastMoneyFund:
     def to_float(self, val):
         try:
             if val:
-                val = val.replace('%', '').replace('---', '')
+                val = val.replace('%', '').replace('---', '').replace('亿元', '')
                 val = float(val)
                 return val
             return -9999
@@ -315,7 +514,7 @@ class EastMoneyFund:
         try:
             val = val.replace('---', '').replace('--', '')
             if val and isinstance(datetime.strptime(val, '%Y-%m-%d'), datetime):
-                return val
+                return datetime.strptime(val, '%Y-%m-%d')
             return '' if can_null else self.default_error_date
         except Exception as e:
             logger.warning("check date failed! val :{} -- {}".format(val, e))
@@ -332,6 +531,14 @@ class EastMoneyFund:
             target_list.append(list[cut * i:cut * (1 + i)])
         target_list.append(list[cut * (n - 1):len(list)])
         return target_list
+
+    def get(self, url):
+        try:
+            response = requests.get(url, headers=self.headers)
+            return response
+        except Exception as e:
+            logger.warning("network error! {}".format(e))
+            return {}
 
 
 if __name__ == '__main__':
