@@ -86,6 +86,9 @@ class FundCompany(models.Model):
     def get_fund_company_url(self):
         return 'http://fund.eastmoney.com/company/{}.html'.format(self.company_id)
 
+    def __str__(self):
+        return self.company_name
+
 
 # 基金经理
 class FundManager(models.Model):
@@ -102,6 +105,9 @@ class FundManager(models.Model):
     def get_fund_manager_url(self):
         return 'http://fund.eastmoney.com/manager/{}.html'.format(self.manager_id)
 
+    def __str__(self):
+        return self.name
+
 
 # 基金与基金经理关系，多对多中间表
 class FundManagerRelationship(models.Model):
@@ -113,6 +119,9 @@ class FundManagerRelationship(models.Model):
 
     class Meta:
         unique_together = ('fund_code', 'manager_id')
+
+    def __str__(self):
+        return "fund_code: {} manager_id: {}".format(self.fund_code, self.manager_id)
 
 
 # 基金爬取日志
