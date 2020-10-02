@@ -187,8 +187,8 @@ class EastMoneyFund:
         pool.join()
 
     def parse_history_net_worth(self, fund_code):
-        logger.info("process {} thread {} {} start crawl history net worth .".format(
-            os.getpid(), threading.currentThread(), datetime.now()))
+        # logger.info("process {} thread {} {} start crawl history net worth .".format(
+        #     os.getpid(), threading.currentThread(), datetime.now()))
         params = {
             'fundCode': fund_code,
             'pageIndex': 1,
@@ -217,8 +217,8 @@ class EastMoneyFund:
                 except Exception as e:
                     logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {} exception : {}".format(
                         datetime.now(), fund_code, defaults, e))
-        logger.info("process {} thread {} {} crawl history net worth complete.".format(
-            os.getpid(), threading.currentThread(), datetime.now()))
+        # logger.info("process {} thread {} {} crawl history net worth complete.".format(
+        #     os.getpid(), threading.currentThread(), datetime.now()))
 
     def get_fund_company(self):
         FundLog.objects.create(name="process {} thread {} start 获取基金公司数据 ".format(os.getpid(),
