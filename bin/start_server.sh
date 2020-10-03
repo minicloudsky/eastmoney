@@ -3,3 +3,4 @@
 sh ./bin/eastmoney_uwsgi.sh start
 sh ./bin/nohup_run_nodejs_server.sh
 sh ./bin/nohup_run_spider.sh
+sh ./bin/nohup_run_django_server.sh
