@@ -178,10 +178,10 @@ class EastMoneyFund:
         logger.info("{} start multi thread crawl history net worth.".format(datetime.now()))
         funds = Fund.objects.all()
         fund_codes = [fund.fund_code for fund in funds if fund.fund_type != 'HK']
+        logger.info("total funds: {}".format(len(fund_codes)))
         pool = ThreadPool(self.thread_num)
         # 在每个线程中执行任务
-        thread_exec_results = pool.map(
-            self.parse_history_net_worth, fund_codes)
+        thread_exec_results = pool.map(self.parse_history_net_worth, fund_codes)
         # Close the pool and wait for the work to finish
         pool.close()
         pool.join()
