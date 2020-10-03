@@ -7,9 +7,8 @@
 `git clone https://github.com/minicloudsky/EastMoneySpider.git`
 
 ### 创建 python3 虚拟环境
-
 ```bash
-pip install virtualenv
+pip3 install virtualenv
 virtualenv venv
 source venv/bin/activate
 ```
@@ -49,11 +48,11 @@ python3 manage.py collectstatic
 ### 启动服务
 ```bash
 
-sh bin/start_server.sh
+sh backend/bin/start_server.sh
 
 ```
 ### 执行爬取基金,因为爬虫耗时较长，建议 `nohup` 放后台执行
 
 ```bash
-nohup python run_spider.py > nohup.out & 
+nohup python backend/bin/run_spider.py > nohup.out & 
 ```
