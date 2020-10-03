@@ -48,10 +48,10 @@ class EastMoneyFund:
         self.get_fund_company()
         self.parse_fund_ranking()
         self.parse_diy_fund_ranking()
-        self.schedule_history_net_worth()
-        self.get_fbs_fund_ranking()
         self.get_monetary_fund_ranking()
         self.get_asset_manage_fund_ranking()
+        self.get_fbs_fund_ranking()
+        self.schedule_history_net_worth()
         self.get_hongkong_fund_ranking()
         self.get_fund_manager()
         self.update_fund_type()
@@ -178,17 +178,17 @@ class EastMoneyFund:
         logger.info("{} start multi thread crawl history net worth.".format(datetime.now()))
         funds = Fund.objects.all()
         fund_codes = [fund.fund_code for fund in funds if fund.fund_type != 'HK']
+        logger.info("total funds: {}".format(len(fund_codes)))
         pool = ThreadPool(self.thread_num)
         # 在每个线程中执行任务
-        thread_exec_results = pool.map(
-            self.parse_history_net_worth, fund_codes)
+        thread_exec_results = pool.map(self.parse_history_net_worth, fund_codes)
         # Close the pool and wait for the work to finish
         pool.close()
         pool.join()
 
     def parse_history_net_worth(self, fund_code):
-        logger.info("process {} thread {} {} start crawl history net worth .".format(
-            os.getpid(), threading.currentThread(), datetime.now()))
+        # logger.info("process {} thread {} {} start crawl history net worth .".format(
+        #     os.getpid(), threading.currentThread(), datetime.now()))
         params = {
             'fundCode': fund_code,
             'pageIndex': 1,
@@ -217,8 +217,8 @@ class EastMoneyFund:
                 except Exception as e:
                     logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {} exception : {}".format(
                         datetime.now(), fund_code, defaults, e))
-        logger.info("process {} thread {} {} crawl history net worth complete.".format(
-            os.getpid(), threading.currentThread(), datetime.now()))
+        # logger.info("process {} thread {} {} crawl history net worth complete.".format(
+        #     os.getpid(), threading.currentThread(), datetime.now()))
 
     def get_fund_company(self):
         FundLog.objects.create(name="process {} thread {} start 获取基金公司数据 ".format(os.getpid(),
@@ -265,6 +265,8 @@ class EastMoneyFund:
                                start_time=datetime.now(), end_time=datetime.now())
 
     def get_fbs_fund_ranking(self):
+        FundLog.objects.create(
+            name="start get fbs fund ranking", start_time=datetime.now(), end_time=datetime.now())
         logger.warning("start get fbs fund ranking.")
         url = self.nodejs_server_url + "fbs_fund_ranking"
         response = self.get(url)
@@ -307,9 +309,13 @@ class EastMoneyFund:
                 logger.warning("get fbs fund error {}".format(e))
                 pass
         logger.warning("finish get fbs fund ranking.")
+        FundLog.objects.create(
+            name="finish get fbs fund ranking", start_time=datetime.now(), end_time=datetime.now())
 
     def get_monetary_fund_ranking(self):
         logger.warning("开始爬取货币基金排行")
+        FundLog.objects.create(
+            name="start get_monetary_fund_ranking", start_time=datetime.now(), end_time=datetime.now())
         response = self.get(self.monetary_fund_url)
         datas = response.json()
         if not datas:
@@ -352,9 +358,13 @@ class EastMoneyFund:
                 logger.warning("exception in monetary_fund : {}".format(e))
                 pass
         logger.warning("爬取货币基金完成")
+        FundLog.objects.create(
+            name="finish get_monetary_fund_ranking", start_time=datetime.now(), end_time=datetime.now())
 
     def get_asset_manage_fund_ranking(self):
         logger.warning("开始爬取理财基金排行")
+        FundLog.objects.create(
+            name="start get_asset_manage_fund_ranking", start_time=datetime.now(), end_time=datetime.now())
         response = self.get(self.asset_manage_fund_url)
         datas = response.json()
         if not datas:
@@ -393,9 +403,13 @@ class EastMoneyFund:
                 logger.warning("exception in asset manage fund : {}".format(e))
                 pass
         logger.warning("爬取理财基金完成")
+        FundLog.objects.create(
+            name="finish get_asset_manage_fund_ranking", start_time=datetime.now(), end_time=datetime.now())
 
     def get_hongkong_fund_ranking(self):
         logger.warning("开始爬取香港基金排行")
+        FundLog.objects.create(
+            name="start get_asset_manage_fund_ranking", start_time=datetime.now(), end_time=datetime.now())
         try:
             response = self.get(self.overseas_fund_url.format(1, 50, self.date))
             datas = response.json()
@@ -450,8 +464,12 @@ class EastMoneyFund:
                     logger.warning("exception in hk fund : {}".format(e))
                     pass
         logger.warning("爬取香港基金完成")
+        FundLog.objects.create(
+            name="finish get_asset_manage_fund_ranking", start_time=datetime.now(), end_time=datetime.now())
 
     def get_fund_manager(self):
+        FundLog.objects.create(
+            name="start get_fund_manager", start_time=datetime.now(), end_time=datetime.now())
         request_url = self.nodejs_server_url + "fund_manager"
         response = self.get(request_url)
         datas = response.json()
@@ -486,8 +504,13 @@ class EastMoneyFund:
             except Exception as e:
                 logger.warning("parse fund manager error! {}".format(e))
 
+        FundLog.objects.create(
+            name="finish get_fund_manager", start_time=datetime.now(), end_time=datetime.now())
+
     def update_fund_type(self):
         logger.info("开始更新基金类型")
+        FundLog.objects.create(
+            name="开始更新基金类型", start_time=datetime.now(), end_time=datetime.now())
         fund_types = {'pg': '偏股型', 'gp': '股票型', 'hh': '混合型',
                       'zq': '债券型', 'zs': '指数型', 'qdii': 'QDII', 'fof': 'FOF'}
         for fund_type, type_name in fund_types.items():
@@ -508,6 +531,8 @@ class EastMoneyFund:
                 except Exception as e:
                     logger.warning("update fund type error! fund_code {} {}".format(fund_code, e))
         logger.info("完成基金类型更新")
+        FundLog.objects.create(
+            name="完成更新基金类型", start_time=datetime.now(), end_time=datetime.now())
 
     def to_int(self, val):
         try:
