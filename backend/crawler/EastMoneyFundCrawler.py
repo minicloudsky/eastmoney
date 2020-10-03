@@ -26,7 +26,7 @@ class EastMoneyFund:
     # 默认最大基金数
     default_max_fund_num = 100000
     # 默认线程数
-    thread_num = 100
+    thread_num = 200
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
@@ -50,8 +50,8 @@ class EastMoneyFund:
         self.parse_diy_fund_ranking()
         self.get_monetary_fund_ranking()
         self.get_asset_manage_fund_ranking()
-        self.schedule_history_net_worth()
         self.get_fbs_fund_ranking()
+        self.schedule_history_net_worth()
         self.get_hongkong_fund_ranking()
         self.get_fund_manager()
         self.update_fund_type()
@@ -178,10 +178,10 @@ class EastMoneyFund:
         logger.info("{} start multi thread crawl history net worth.".format(datetime.now()))
         funds = Fund.objects.all()
         fund_codes = [fund.fund_code for fund in funds if fund.fund_type != 'HK']
+        logger.info("total funds: {}".format(len(fund_codes)))
         pool = ThreadPool(self.thread_num)
         # 在每个线程中执行任务
-        thread_exec_results = pool.map(
-            self.parse_history_net_worth, fund_codes)
+        thread_exec_results = pool.map(self.parse_history_net_worth, fund_codes)
         # Close the pool and wait for the work to finish
         pool.close()
         pool.join()
