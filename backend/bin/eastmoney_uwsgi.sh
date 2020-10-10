@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PROJECT_PATH=/home/.jywcode/eastmoneyspider
+PROJECT_PATH=/home/.jywcode/eastmoneyspider/backend
 DESC=eastmoney_django_server
 NAME=eastmoney_django_server
 PIDFILE=$PROJECT_PATH/uwsgi/uwsgi.pid
