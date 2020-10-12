@@ -11,7 +11,7 @@ def log(text):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            logger.warning('开始执行 %s %s():' % (text, func.__name__))
+            logger.warning('%s 开始执行 %s():' % (text, func.__name__))
             FundLog.objects.create(name='开始执行 %s %s():' % (text, func.__name__),
                                    start_time=datetime.now(), end_time=datetime.now())
             func(*args, **kwargs)
