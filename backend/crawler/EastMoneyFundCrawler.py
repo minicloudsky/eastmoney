@@ -59,7 +59,8 @@ class EastMoneyFund:
         for t in thread_list_first:
             t.join()
         thread_list_second = [
-            threading.Thread(target=self.schedule_history_net_worth),
+            # threading.Thread(target=self.schedule_history_net_worth),
+            threading.Thread(target=self.single_thread_parse_history_net_worth),
             threading.Thread(target=self.get_fund_manager),
             threading.Thread(target=self.update_fund_type),
         ]
@@ -196,6 +197,14 @@ class EastMoneyFund:
         pool.close()
         pool.join()
 
+    @log("{} 单线程爬取基金历史净值".format(datetime.now()))
+    def single_thread_parse_history_net_worth(self):
+        funds = Fund.objects.all()
+        fund_codes = [
+            fund.fund_code for fund in funds if fund.fund_type != 'HK']
+        for fund_code in fund_codes:
+            self.parse_history_net_worth(fund_code)
+        
     def parse_history_net_worth(self, fund_code):
         # logger.info("process {} thread {} {} start crawl history net worth .".format(
         #     os.getpid(), threading.currentThread(), datetime.now()))
