@@ -254,9 +254,14 @@ class EastMoneyFund:
             total -= 1
             logger.warning(
                 "单线程爬取基金历史净值,已爬取 {} 历史净值，剩余基金数 {}".format(fund_code, total))
-            log.update(name="单线程爬取基金历史净值,已爬取 {} 历史净值，剩余基金数 {}".format(
-                fund_code, total), status='running')
-        log.update(name="单线程爬取基金历史净值已经完成", status='completed',update_time=datetime.now())
+            log.name = "单线程爬取基金历史净值,已爬取 {} 历史净值，剩余基金数 {}".format(
+                fund_code, total)
+            log.status = 'running'
+            log.save()
+        log.name = "单线程爬取基金历史净值已经完成"
+        log.status = 'completed'
+        log.update_time = datetime.now()
+        log.save()
 
     def parse_history_net_worth(self, fund_code):
         params = {

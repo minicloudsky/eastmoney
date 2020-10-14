@@ -20,7 +20,9 @@ def log(text):
             logger.warning('{} {}() 执行完成:'.format(text, func.__name__))
             FundLog.objects.create(name='{} {}() 执行完成:'.format(text, func.__name__),
                                    start_time=datetime.now(), end_time=datetime.now())
-            task.update(**{'status':'completed','update_time':datetime.now()})
+            task.status = 'completed'
+            task.update_time = datetime.now()
+            task.save()
 
         return wrapper
 
