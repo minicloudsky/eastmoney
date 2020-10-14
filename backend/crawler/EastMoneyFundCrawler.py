@@ -128,10 +128,10 @@ class EastMoneyFund:
                             FundHistoricalNetWorthRanking(**defaults))
                     exist_fund = Fund.objects.filter(**{'fund_code': fund_code})
                     if exist_fund:
-                        exist_fund.update(**defaults)
+                        exist_fund.update(**fund_defaults)
                     else:
-                        defaults.update({'fund_code': fund_code})
-                        fund_objs.append(Fund(**defaults))
+                        fund_defaults.update({'fund_code': fund_code})
+                        fund_objs.append(Fund(**fund_defaults))
                     # FundHistoricalNetWorthRanking.objects.update_or_create(
                     #     defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
                     # Fund.objects.update_or_create(
@@ -202,10 +202,10 @@ class EastMoneyFund:
                         fund_history_objs.append(FundHistoricalNetWorthRanking(**defaults))
                     exist_fund = Fund.objects.filter(**{'fund_code': fund_code})
                     if exist_fund:
-                        exist_fund.update(**defaults)
+                        exist_fund.update(**fund_defaults)
                     else:
-                        defaults.update({'fund_code': fund_code})
-                        fund_objs.append(Fund(**defaults))
+                        fund_defaults.update({'fund_code': fund_code})
+                        fund_objs.append(Fund(**fund_defaults))
                 except Exception as e:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
                         defaults, fund_defaults, e))
