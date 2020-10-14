@@ -7,7 +7,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 from urllib.parse import urlencode
 from utils.decorators import log
 import requests
-
+import time
 from apps.Fund.models import FundManagerRelationship, FundHistoricalNetWorthRanking, FundLog, Fund, FundCompany, \
     FundManager, FundTask
 
@@ -43,7 +43,7 @@ class EastMoneyFund:
     monetary_fund_url = 'http://api.fund.eastmoney.com/FundRank/GetHbRankList?intCompany=0&MinsgType=&IsSale=0&strSortCol=SYL_Y&orderType=desc&pageIndex=1&pageSize=500000&_=1601519558625'
     asset_manage_fund_url = 'http://api.fund.eastmoney.com/FundRank/GetLcRankList?intCompany=0&MinsgType=undefined' \
                             '&IsSale=0&strSortCol=SYL_Z&orderType=desc&pageIndex={}&pageSize={}&FBQ='.format(
-                                1, 500000)
+        1, 500000)
     overseas_fund_url = 'http://overseas.1234567.com.cn/overseasapi/OpenApiHander.ashx?api=HKFDApi&m=MethodFundList&action=1&pageindex={}&pagesize={}&dy=1&date1=1990-10-02&date2={}&sortfield=W&sorttype=-1&isbuy=0'
 
     def __init__(self):
@@ -279,6 +279,7 @@ class EastMoneyFund:
         log.save()
 
     def parse_history_net_worth(self, fund_code):
+        crawl_start_time = time.time()
         params = {
             'fundCode': fund_code,
             'pageIndex': 1,
@@ -323,8 +324,10 @@ class EastMoneyFund:
                 fund_history_obj_list)
             if self.mutex.acquire(True):
                 self.total_fund -= 1
-                self.crawl_history_task.name = "多线程爬取基金历史净值,已爬取 {} 历史净值，剩余基金数 {}".format(
-                    fund_code, self.total_fund)
+                crawl_end_time = time.time()
+                self.crawl_history_task.name = "多线程爬取基金历史净值-已爬取 {} 历史净值，剩余基金数 {},本次用时 {} s,预计爬完还需要 {} minute".format(
+                    fund_code, self.total_fund, crawl_end_time - crawl_start_time,
+                                                (crawl_end_time - crawl_start_time) * self.total_fund)
                 self.crawl_history_task.update_time = datetime.now()
                 self.crawl_history_task.save()
             self.mutex.release()
@@ -516,7 +519,7 @@ class EastMoneyFund:
             logger.warning("Exception in get hk fund {}".format(e))
             return
         total_page = datas['TotalCount'] / 50 + \
-            1 if datas['TotalCount'] else 10
+                     1 if datas['TotalCount'] else 10
         for page in range(int(total_page) + 1):
             response = self.get(
                 self.overseas_fund_url.format(page, 50, self.date))
@@ -624,7 +627,7 @@ class EastMoneyFund:
                       'zq': '债券型', 'zs': '指数型', 'qdii': 'QDII', 'fof': 'FOF'}
         for fund_type, type_name in fund_types.items():
             request_url = self.nodejs_server_url + \
-                'fund_type' + '&fund_type={}'.format(fund_type)
+                          'fund_type' + '&fund_type={}'.format(fund_type)
             response = self.get(request_url)
             if not response.json()['datas']:
                 continue
