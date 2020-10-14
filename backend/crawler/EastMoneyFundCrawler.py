@@ -27,7 +27,10 @@ class EastMoneyFund:
     default_max_fund_num = 100000
     # 默认线程数
     thread_num = 10
-
+    # 基金总数
+    total_fund = 0
+    mutex = threading.Lock()
+    crawl_history_task = None
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
         'Referer': "http://fund.eastmoney.com/data/diyfundranking.html",
@@ -60,8 +63,9 @@ class EastMoneyFund:
         for t in thread_list_first:
             t.join()
         thread_list_second = [
-            #threading.Thread(target=self.schedule_history_net_worth),
-            threading.Thread(target=self.single_thread_parse_history_net_worth),
+            # threading.Thread(target=self.schedule_history_net_worth),
+            threading.Thread(
+                target=self.single_thread_parse_history_net_worth),
             # threading.Thread(target=self.schedule_history_net_worth),
             threading.Thread(target=self.get_fund_manager),
             threading.Thread(target=self.update_fund_type),
@@ -126,7 +130,8 @@ class EastMoneyFund:
                             {'fund_code': fund_code, 'current_date': current_date})
                         fund_history_objs.append(
                             FundHistoricalNetWorthRanking(**defaults))
-                    exist_fund = Fund.objects.filter(**{'fund_code': fund_code})
+                    exist_fund = Fund.objects.filter(
+                        **{'fund_code': fund_code})
                     if exist_fund:
                         exist_fund.update(**fund_defaults)
                     else:
@@ -140,7 +145,8 @@ class EastMoneyFund:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
                         defaults, fund_defaults, e))
             Fund.objects.bulk_create(fund_objs)
-            FundHistoricalNetWorthRanking.objects.bulk_create(fund_history_objs)
+            FundHistoricalNetWorthRanking.objects.bulk_create(
+                fund_history_objs)
             log_kwargs['end_time'] = datetime.now()
             log_kwargs['total_fund'] = funds_json['allNum']
             log_kwargs['stock_fund_num'] = funds_json['gpNum']
@@ -199,8 +205,10 @@ class EastMoneyFund:
                     else:
                         defaults.update(
                             {'fund_code': fund_code, 'current_date': current_date})
-                        fund_history_objs.append(FundHistoricalNetWorthRanking(**defaults))
-                    exist_fund = Fund.objects.filter(**{'fund_code': fund_code})
+                        fund_history_objs.append(
+                            FundHistoricalNetWorthRanking(**defaults))
+                    exist_fund = Fund.objects.filter(
+                        **{'fund_code': fund_code})
                     if exist_fund:
                         exist_fund.update(**fund_defaults)
                     else:
@@ -210,7 +218,8 @@ class EastMoneyFund:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
                         defaults, fund_defaults, e))
             Fund.objects.bulk_create(fund_objs)
-            FundHistoricalNetWorthRanking.objects.bulk_create(fund_history_objs)
+            FundHistoricalNetWorthRanking.objects.bulk_create(
+                fund_history_objs)
             log_kwargs['end_time'] = datetime.now()
             log_kwargs['total_fund'] = funds_json['allNum']
             log_kwargs['stock_fund_num'] = funds_json['gpNum']
@@ -234,6 +243,9 @@ class EastMoneyFund:
         fund_codes = [
             fund.fund_code for fund in funds if fund.fund_type != 'HK']
         logger.info("total funds: {}".format(len(fund_codes)))
+        self.total_fund = len(fund_codes)
+        self.crawl_history_task = FundTask.objects.create(
+            func='single_thread_parse_history_net_worth', name="单线程爬取基金历史净值", status='running')
         pool = ThreadPool(self.thread_num)
         # 在每个线程中执行任务
         thread_exec_results = pool.map(
@@ -241,6 +253,9 @@ class EastMoneyFund:
         # Close the pool and wait for the work to finish
         pool.close()
         pool.join()
+        self.crawl_history_task.name = "单线程爬取基金历史净值爬取结束"
+        self.crawl_history_task.update_time = datetime.now()
+        self.crawl_history_task.save()
 
     @log("{} 单线程爬取基金历史净值".format(datetime.now()))
     def single_thread_parse_history_net_worth(self):
@@ -248,7 +263,8 @@ class EastMoneyFund:
         fund_codes = [
             fund.fund_code for fund in funds if fund.fund_type != 'HK']
         total = len(fund_codes)
-        log = FundTask.objects.create(func='single_thread_parse_history_net_worth', name="单线程爬取基金历史净值", status='running')
+        log = FundTask.objects.create(
+            func='single_thread_parse_history_net_worth', name="单线程爬取基金历史净值", status='running')
         for fund_code in fund_codes:
             self.parse_history_net_worth(fund_code)
             total -= 1
@@ -306,6 +322,13 @@ class EastMoneyFund:
                         datetime.now(), fund_code, defaults, e))
             FundHistoricalNetWorthRanking.objects.bulk_create(
                 fund_history_obj_list)
+            if self.mutex.acquire(True):
+                self.total_fund -= 1
+                self.crawl_history_task.name = "单线程爬取基金历史净值,已爬取 {} 历史净值，剩余基金数 {}".format(
+                    fund_code, self.total_fund)
+                self.crawl_history_task.update_time = datetime.now()
+                self.crawl_history_task.save()
+            self.mutex.release()
 
     @log("{} 爬取基金公司".format(datetime.now()))
     def get_fund_company(self):
