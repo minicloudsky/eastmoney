@@ -15,6 +15,7 @@ class FundLogSerializer(ModelSerializer):
 
 class FundLogView(ListAPIView):
     # permission_classes = [IsAuthenticated, ]
+    
     pagination_class = PageNumberPagination
     serializer_class = FundLogSerializer
     queryset = FundLog.objects.order_by("-start_time").all()
