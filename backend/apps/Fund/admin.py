@@ -73,6 +73,6 @@ class FundLogAdmin(admin.ModelAdmin):
 
 @admin.register(FundTask)
 class FundLogAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'func', 'insert_time', 'update_time']
-    list_filter = ['func']
-    search_fields = ['name', 'func']
+    list_display = ['id', 'name', 'func', 'status', 'insert_time', 'update_time']
+    list_filter = ['func', 'status']
+    search_fields = ['name', 'status', 'func']
