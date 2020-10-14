@@ -63,10 +63,9 @@ class EastMoneyFund:
         for t in thread_list_first:
             t.join()
         thread_list_second = [
-            # threading.Thread(target=self.schedule_history_net_worth),
-            threading.Thread(
-                target=self.single_thread_parse_history_net_worth),
-            # threading.Thread(target=self.schedule_history_net_worth),
+            threading.Thread(target=self.schedule_history_net_worth),
+            # threading.Thread(
+            #     target=self.single_thread_parse_history_net_worth),
             threading.Thread(target=self.get_fund_manager),
             threading.Thread(target=self.update_fund_type),
         ]
