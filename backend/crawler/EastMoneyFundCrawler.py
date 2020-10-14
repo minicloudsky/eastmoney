@@ -244,7 +244,7 @@ class EastMoneyFund:
         logger.info("total funds: {}".format(len(fund_codes)))
         self.total_fund = len(fund_codes)
         self.crawl_history_task = FundTask.objects.create(
-            func='single_thread_parse_history_net_worth', name="单线程爬取基金历史净值", status='running')
+            func='multi_thread_parse_history_net_worth', name="多线程爬取基金历史净值", status='running')
         pool = ThreadPool(self.thread_num)
         # 在每个线程中执行任务
         thread_exec_results = pool.map(
@@ -323,7 +323,7 @@ class EastMoneyFund:
                 fund_history_obj_list)
             if self.mutex.acquire(True):
                 self.total_fund -= 1
-                self.crawl_history_task.name = "单线程爬取基金历史净值,已爬取 {} 历史净值，剩余基金数 {}".format(
+                self.crawl_history_task.name = "多线程爬取基金历史净值,已爬取 {} 历史净值，剩余基金数 {}".format(
                     fund_code, self.total_fund)
                 self.crawl_history_task.update_time = datetime.now()
                 self.crawl_history_task.save()
