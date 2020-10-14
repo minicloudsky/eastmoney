@@ -142,3 +142,14 @@ class FundLog(models.Model):
 
     def __str__(self):
         return self.name
+
+class FundTask(models.Model):
+    name = models.CharField('任务名', max_length=200,default='')
+    status = models.CharField('任务状态', max_length=100, default='')
+    insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
+    update_time = models.DateTimeField('更新时间', null=True)
+    is_deleted = models.IntegerField('是否删除', default=0)
+    
+    def __str__(self):
+        return self.name
+    
