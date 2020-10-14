@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 from apps.Fund.models import Fund, FundHistoricalNetWorthRanking, FundCompany, FundManager, FundManagerRelationship, \
-    FundLog
+    FundLog, FundTask
 
 
 @admin.register(Fund)
@@ -69,3 +69,10 @@ class FundLogAdmin(admin.ModelAdmin):
                     'fof_fund_num', 'start_time', 'end_time', ]
     list_filter = ['name']
     search_fields = ['name']
+
+
+@admin.register(FundTask)
+class FundLogAdmin(admin.ModelAdmin):
+    list_display = ['id', 'name', 'func', 'insert_time', 'update_time']
+    list_filter = ['func']
+    search_fields = ['name', 'func']
