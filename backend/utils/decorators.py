@@ -14,12 +14,13 @@ def log(text):
             logger.warning('%s 开始执行 %s():' % (text, func.__name__))
             FundLog.objects.create(name='开始执行 %s %s():' % (text, func.__name__),
                                    start_time=datetime.now(), end_time=datetime.now())
-            FundTask.objects.create(name=func.__name__, status='running')
+            task = FundTask.objects.create(name='开始执行 %s %s():' % (
+                text, func.__name__), func=func.__name__, status='running')
             func(*args, **kwargs)
             logger.warning('{} {}() 执行完成:'.format(text, func.__name__))
             FundLog.objects.create(name='{} {}() 执行完成:'.format(text, func.__name__),
                                    start_time=datetime.now(), end_time=datetime.now())
-            FundTask.objects.filter(name=func.__name__, status='running').update(**{'status':'completed'})
+            task.update(**{'status':'completed','update_time':datetime.now()})
 
         return wrapper
 
