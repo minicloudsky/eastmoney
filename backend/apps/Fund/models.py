@@ -4,16 +4,19 @@ from django.db import models
 # Create your models here.
 # 基金
 class Fund(models.Model):
-    fund_code = models.CharField('基金代码', default='', unique=True, max_length=20, db_index=True)
+    fund_code = models.CharField(
+        '基金代码', default='', unique=True, max_length=20, db_index=True)
     fund_name = models.CharField('基金名称', max_length=200, default='')
     fund_type = models.CharField('基金类型', max_length=200, default='')
     fund_short_name = models.CharField('基金简称', max_length=200, default='')
-    pinyin_abbreviation_code = models.CharField('基金首字母缩写', max_length=200, default='')
+    pinyin_abbreviation_code = models.CharField(
+        '基金首字母缩写', max_length=200, default='')
     establish_date = models.DateField('基金创立日期', default='', null=True)
     handling_fee = models.FloatField('手续费率', default=0)
     can_buy = models.BooleanField('可否购买', default=False)
     initial_purchase_amount = models.FloatField('起购金额', default=0)
-    currency = models.CharField('货币', default='人民币', max_length=20, null=True, blank=True)
+    currency = models.CharField(
+        '货币', default='人民币', max_length=20, null=True, blank=True)
     insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
     update_time = models.DateTimeField('更新时间', null=True)
     is_deleted = models.IntegerField('是否删除', default=0)
@@ -27,7 +30,8 @@ class Fund(models.Model):
 
 # 基金历史净值排名数据
 class FundHistoricalNetWorthRanking(models.Model):
-    fund_code = models.CharField('基金代码', default='', max_length=20, db_index=True)
+    fund_code = models.CharField(
+        '基金代码', default='', max_length=20, db_index=True)
     start_unit_net_worth = models.FloatField('起始单位净值', default=0)
     start_cumulative_net_worth = models.FloatField('起始累计净值', default=0)
     current_unit_net_worth = models.FloatField('当前单位净值', default=0)
@@ -50,9 +54,12 @@ class FundHistoricalNetWorthRanking(models.Model):
     since_founded_bonus = models.FloatField('成立以来分红', default=0)
     since_founded_bonus_num = models.IntegerField('成立以来分红次数', default=0)
     handling_fee = models.FloatField('手续费率', default=0)
-    subscription_status = models.CharField('申购状态', max_length=20, default='', null=True)
-    redemption_status = models.CharField('赎回状态', max_length=20, default='', null=True)
-    dividend_distribution = models.CharField('分红送配', max_length=200, default='', null=True)
+    subscription_status = models.CharField(
+        '申购状态', max_length=20, default='', null=True)
+    redemption_status = models.CharField(
+        '赎回状态', max_length=20, default='', null=True)
+    dividend_distribution = models.CharField(
+        '分红送配', max_length=200, default='', null=True)
     current_date = models.DateField('当前日期', default='')
     insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
     update_time = models.DateTimeField('更新时间', null=True)
@@ -77,7 +84,8 @@ class FundCompany(models.Model):
     total_fund_num = models.IntegerField('全部基金数', default=0)
     total_manager_num = models.IntegerField('全部基金经理数', default=0)
     tianxiang_star = models.PositiveIntegerField('天相评级(0星到五星)', default=0)
-    pinyin_abbreviation_code = models.CharField('基金公司首字母缩写', max_length=200, default='')
+    pinyin_abbreviation_code = models.CharField(
+        '基金公司首字母缩写', max_length=200, default='')
     update_date = models.DateField('数据更新时间', null=True)
     insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
     update_time = models.DateTimeField('更新时间', null=True)
@@ -139,6 +147,19 @@ class FundLog(models.Model):
     fof_fund_num = models.PositiveIntegerField('FOF型基金总数', default=0)
     start_time = models.DateTimeField('开始时间')
     end_time = models.DateTimeField('结束时间')
+
+    def __str__(self):
+        return self.name
+
+
+class FundTask(models.Model):
+    name = models.CharField('任务名', max_length=200, default='')
+    func = models.CharField('执行函数名', max_length=200,
+                            default='', null=True, blank=True)
+    status = models.CharField('任务状态', max_length=100, default='')
+    insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
+    update_time = models.DateTimeField('更新时间', null=True)
+    is_deleted = models.IntegerField('是否删除', default=0)
 
     def __str__(self):
         return self.name

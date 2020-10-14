@@ -15,9 +15,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from django.conf.urls import url, include
+from apps.Fund.views import FundLogView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('log/', include("apps.Fund.urls")),
+    path('fundlog/', FundLogView.as_view(), name='获取基金爬取日志'),
 ]

@@ -28,7 +28,7 @@ case "$1" in
 start)
   echo -n "Starting $DESC: "
   if [ -e $PIDFILE ]; then
-    echo "The program has been started! Please check it!"
+    echo "The uwsgi server has been started! Please check it!"
   else
     server_start
     sleep 5
