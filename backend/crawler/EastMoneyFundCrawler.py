@@ -26,7 +26,7 @@ class EastMoneyFund:
     # 默认最大基金数
     default_max_fund_num = 100000
     # 默认线程数
-    thread_num = 200
+    thread_num = 10
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
@@ -59,8 +59,8 @@ class EastMoneyFund:
         for t in thread_list_first:
             t.join()
         thread_list_second = [
-            # threading.Thread(target=self.schedule_history_net_worth),
-            threading.Thread(target=self.single_thread_parse_history_net_worth),
+            threading.Thread(target=self.schedule_history_net_worth),
+            #threading.Thread(target=self.single_thread_parse_history_net_worth),
             threading.Thread(target=self.get_fund_manager),
             threading.Thread(target=self.update_fund_type),
         ]
