@@ -26,7 +26,7 @@ class EastMoneyFund:
     # 默认最大基金数
     default_max_fund_num = 100000
     # 默认线程数
-    thread_num = 10
+    thread_num = 25
     # 基金总数
     total_fund = 0
     mutex = threading.Lock()
@@ -325,9 +325,9 @@ class EastMoneyFund:
             if self.mutex.acquire(True):
                 self.total_fund -= 1
                 crawl_end_time = time.time()
-                self.crawl_history_task.name = "多线程爬取基金历史净值-已爬取 {} 历史净值，剩余基金数 {},本次用时 {} s,预计爬完还需要 {} minute".format(
-                    fund_code, self.total_fund, crawl_end_time - crawl_start_time,
-                                                (crawl_end_time - crawl_start_time) * self.total_fund)
+                self.crawl_history_task.name = "多线程爬取基金历史净值,当前线程 {} -已爬取 {} 历史净值，剩余基金数 {},本次用时 {} s,预计爬完还需要 {} hour".format(
+                    threading.current_thread().getName(), fund_code, self.total_fund, crawl_end_time - crawl_start_time,
+                                                (crawl_end_time - crawl_start_time) * self.total_fund / 3600)
                 self.crawl_history_task.update_time = datetime.now()
                 self.crawl_history_task.save()
             self.mutex.release()
