@@ -26,7 +26,7 @@ class EastMoneyFund:
     # 默认最大基金数
     default_max_fund_num = 100000
     # 默认线程数
-    thread_num = 25
+    thread_num = 50
     # 基金总数
     total_fund = 0
     mutex = threading.Lock()
