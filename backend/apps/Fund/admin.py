@@ -1,7 +1,8 @@
 from django.contrib import admin
 
 # Register your models here.
-from apps.Fund.models import Fund, FundHistoricalNetWorthRanking, FundCompany, FundManager, FundManagerRelationship, \
+from apps.Fund.models import Fund, FundHistoricalNetWorth, FundRanking, FundCompany, FundManager, \
+    FundManagerRelationship, \
     FundLog, FundTask
 
 
@@ -17,16 +18,26 @@ class FundAdmin(admin.ModelAdmin):
                      'pinyin_abbreviation_code', ]
 
 
-@admin.register(FundHistoricalNetWorthRanking)
-class FundHistoricalNetWorthRanking(admin.ModelAdmin):
+@admin.register(FundRanking)
+class FundRankingAdmin(admin.ModelAdmin):
     list_display = ['id', 'fund_code', 'start_unit_net_worth',
                     'start_cumulative_net_worth', 'current_unit_net_worth', 'current_cumulative_net_worth',
                     'daily', 'last_week', 'last_month', 'last_three_month', 'last_six_month',
                     'last_year', 'last_two_year', 'last_three_year', 'last_five_year', 'ten_thousand_income',
                     'annualized_income_7day', 'annualized_income_14day', 'annualized_income_28day',
                     'this_year', 'since_founded', 'since_founded_bonus',
-                    'since_founded_bonus_num', 'handling_fee', 'subscription_status',
-                    'redemption_status', 'dividend_distribution', 'current_date', 'insert_time',
+                    'since_founded_bonus_num', 'handling_fee', 'current_date', 'insert_time',
+                    'update_time', 'is_deleted', ]
+    list_filter = ['fund_code', 'current_date', 'insert_time',
+                   'update_time', ]
+    search_fields = ['fund_code', ]
+
+
+@admin.register(FundHistoricalNetWorth)
+class FundHistoricalNetWorthAdmin(admin.ModelAdmin):
+    list_display = ['id', 'fund_code', 'current_unit_net_worth', 'current_cumulative_net_worth',
+                    'daily', 'subscription_status', 'redemption_status',
+                    'dividend_distribution', 'current_date', 'insert_time',
                     'update_time', 'is_deleted', ]
     list_filter = ['fund_code', 'current_date', 'insert_time',
                    'update_time', ]

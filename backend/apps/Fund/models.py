@@ -28,10 +28,9 @@ class Fund(models.Model):
         return self.fund_code + "_" + self.fund_name
 
 
-# 基金历史净值排名数据
-class FundHistoricalNetWorthRanking(models.Model):
-    fund_code = models.CharField(
-        '基金代码', default='', max_length=20, db_index=True)
+# 基金排名数据
+class FundRanking(models.Model):
+    fund_code = models.CharField('基金代码', default='', max_length=20, db_index=True)
     start_unit_net_worth = models.FloatField('起始单位净值', default=0)
     start_cumulative_net_worth = models.FloatField('起始累计净值', default=0)
     current_unit_net_worth = models.FloatField('当前单位净值', default=0)
@@ -54,12 +53,28 @@ class FundHistoricalNetWorthRanking(models.Model):
     since_founded_bonus = models.FloatField('成立以来分红', default=0)
     since_founded_bonus_num = models.IntegerField('成立以来分红次数', default=0)
     handling_fee = models.FloatField('手续费率', default=0)
-    subscription_status = models.CharField(
-        '申购状态', max_length=20, default='', null=True)
-    redemption_status = models.CharField(
-        '赎回状态', max_length=20, default='', null=True)
-    dividend_distribution = models.CharField(
-        '分红送配', max_length=200, default='', null=True)
+    current_date = models.DateField('当前日期', default='')
+    insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
+    update_time = models.DateTimeField('更新时间', null=True)
+    is_deleted = models.IntegerField('是否删除', default=0)
+
+    def __str__(self):
+        return self.fund_code + "_" + str(self.current_date)
+
+    class Meta:
+        # 添加唯一索引约束，防止每天同一个基金被爬取多次
+        unique_together = ('fund_code', 'current_date')
+
+
+# 基金历史净值数据
+class FundHistoricalNetWorth(models.Model):
+    fund_code = models.CharField('基金代码', default='', max_length=20, db_index=True)
+    current_unit_net_worth = models.FloatField('当前单位净值', default=0)
+    current_cumulative_net_worth = models.FloatField('当前累计净值', default=0)
+    daily = models.FloatField('日涨跌幅', default=0)
+    subscription_status = models.CharField('申购状态', max_length=20, default='', null=True)
+    redemption_status = models.CharField('赎回状态', max_length=20, default='', null=True)
+    dividend_distribution = models.CharField('分红送配', max_length=200, default='', null=True)
     current_date = models.DateField('当前日期', default='')
     insert_time = models.DateTimeField('爬取时间', auto_now_add=True)
     update_time = models.DateTimeField('更新时间', null=True)
