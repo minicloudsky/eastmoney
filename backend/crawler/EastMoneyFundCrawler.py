@@ -214,7 +214,6 @@ class EastMoneyFund:
                         else:
                             fund_defaults.update({'fund_code': fund_code})
                             fund_objs.append(Fund(**fund_defaults))
-                    self.mutex.release()
                 except Exception as e:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
                         defaults, fund_defaults, e))
