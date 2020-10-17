@@ -51,19 +51,19 @@ class EastMoneyFund:
     def __init__(self):
         FundLog.objects.create(
             name="开始爬取东方财富基金数据", start_time=datetime.now(), end_time=datetime.now())
-        # thread_list_first = [
-        #     threading.Thread(target=self.get_fund_company),
-        #     threading.Thread(target=self.parse_fund_ranking),
-        #     threading.Thread(target=self.parse_diy_fund_ranking),
-        #     threading.Thread(target=self.get_monetary_fund_ranking),
-        #     threading.Thread(target=self.get_asset_manage_fund_ranking),
-        #     threading.Thread(target=self.get_fbs_fund_ranking),
-        #     threading.Thread(target=self.get_hongkong_fund_ranking),
-        # ]
-        # for t in thread_list_first:
-        #     t.start()
-        # for t in thread_list_first:
-        #     t.join()
+        thread_list_first = [
+            threading.Thread(target=self.get_fund_company),
+            threading.Thread(target=self.parse_fund_ranking),
+            threading.Thread(target=self.parse_diy_fund_ranking),
+            threading.Thread(target=self.get_monetary_fund_ranking),
+            threading.Thread(target=self.get_asset_manage_fund_ranking),
+            threading.Thread(target=self.get_fbs_fund_ranking),
+            threading.Thread(target=self.get_hongkong_fund_ranking),
+        ]
+        for t in thread_list_first:
+            t.start()
+        for t in thread_list_first:
+            t.join()
         thread_list_second = [
             threading.Thread(target=self.schedule_history_net_worth),
             # threading.Thread(target=self.single_thread_parse_history_net_worth),
