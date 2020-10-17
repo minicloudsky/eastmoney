@@ -19,5 +19,6 @@ def main():
         connection.commit()
     print("truncated tables .")
 
+
 if __name__ == '__main__':
     main()
