@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from apps.Fund.models import Fund, FundHistoricalNetWorth, FundRanking, FundCompany, FundManager, \
+from apps.fund.models import Fund, FundHistoricalNetWorth, FundRanking, FundCompany, FundManager, \
     FundManagerRelationship, \
     FundLog, FundTask
 

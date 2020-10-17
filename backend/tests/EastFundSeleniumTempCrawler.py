@@ -5,7 +5,7 @@ import time
 from bs4 import BeautifulSoup
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
-from apps.Fund.models import FundHistoricalNetWorthRanking
+from apps.fund.models import FundHistoricalNetWorthRanking
 
 # 东方财富基金
 class EastMoneyFund:

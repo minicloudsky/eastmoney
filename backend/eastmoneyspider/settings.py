@@ -14,7 +14,7 @@ import platform
 from pathlib import Path
 import os
 import sys
-from utils.db_config import get_db_config
+from utils.config import get_db_config, get_crawl_mode
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,9 +42,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'apps.Fund',
+    'apps.fund',
     'corsheaders',
     'rest_framework',
+    'rest_framework.authtoken',
+    'apps.user',
+    'apps.log',
 ]
 
 MIDDLEWARE = [
@@ -56,6 +59,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'utils.middlewares.SaveLogMiddleware',
 ]
 
 ROOT_URLCONF = 'eastmoneyspider.urls'
@@ -80,16 +84,18 @@ WSGI_APPLICATION = 'eastmoneyspider.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
-
+# get database config
 DB_CONFIG = get_db_config()
+# crawl mode
+CRAWL_MODE = get_crawl_mode()
 DATABASES = {
     "default": {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': 'huaweicloud.yawujia.cn' if 'linux' not in platform.system().lower() else DB_CONFIG['host'],
+        'HOST': DB_CONFIG['host'],
         'PORT': DB_CONFIG['port'],
         'USER': DB_CONFIG['user'],
         'PASSWORD': DB_CONFIG['password'],
-        'NAME': 'eastmoney'  # TODO 数据库名需要改变
+        'NAME': 'eastmoney'
     }
 }
 
@@ -184,12 +190,12 @@ CORS_ALLOW_CREDENTIALS = True  # 允许携带cookie
 CORS_ORIGIN_ALLOW_ALL = True
 
 CORS_ALLOW_METHODS = (
-    # 'DELETE',
+    'DELETE',
     'GET',
     'OPTIONS',
-    # 'PATCH',
+    'PATCH',
     'POST',
-    # 'PUT',
+    'PUT',
     'VIEW',
 )
 CORS_ALLOW_HEADERS = (
@@ -206,3 +212,20 @@ CORS_ALLOW_HEADERS = (
     'x-requested-with'
 )
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ),
+    'DEFAULT_PARSER_CLASSES': (
+        'rest_framework.parsers.JSONParser',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+    ),
+}
+AUTH_USER_MODEL = 'user.User'
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'user.backends.EmailBackend',
+)

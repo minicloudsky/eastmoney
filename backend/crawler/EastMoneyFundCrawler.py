@@ -6,10 +6,10 @@ from datetime import datetime
 from multiprocessing.dummy import Pool as ThreadPool
 from urllib.parse import urlencode
 from django.db import transaction
-
+from django.conf import settings
 import requests
 
-from apps.Fund.models import FundManagerRelationship, FundRanking, FundHistoricalNetWorth, FundLog, Fund, FundCompany, \
+from apps.fund.models import FundManagerRelationship, FundRanking, FundHistoricalNetWorth, FundLog, Fund, FundCompany, \
     FundManager, FundTask
 from utils.decorators import log
 
@@ -23,12 +23,13 @@ class EastMoneyFund:
     date = datetime.strftime(datetime.now(), '%Y-%m-%d')
     # 默认错误日期，当日期处理错误时候，将日期设置为 这个值
     default_error_date = datetime.strptime('1976-01-01', '%Y-%m-%d')
-    # 默认基金历史数据最大条数
-    default_history_fund_max_size = 50 * 365
+    crawl_mode = settings.CRAWL_MODE
+    # 默认基金历史数据最大条数,全量时爬取 50年数据，增量时爬取最近 10 天数据
+    default_history_fund_max_size = 50 * 365 if crawl_mode == 'ALL' else 10
     # 默认最大基金数
     default_max_fund_num = 100000
     # 默认线程数
-    thread_num = 150
+    thread_num = 75
     # 基金总数
     total_fund = 0
     mutex = threading.Lock()
@@ -50,7 +51,8 @@ class EastMoneyFund:
 
     def __init__(self):
         FundLog.objects.create(
-            name="开始爬取东方财富基金数据", start_time=datetime.now(), end_time=datetime.now())
+            name="开始爬取, 当前爬取模式为 {}".format(self.crawl_mode),
+            start_time=datetime.now(), end_time=datetime.now())
         thread_list_first = [
             threading.Thread(target=self.get_fund_company),
             threading.Thread(target=self.parse_fund_ranking),
@@ -138,7 +140,7 @@ class EastMoneyFund:
                             fund_objs.append(Fund(**fund_defaults))
                         # FundHistoricalNetWorthRanking.objects.update_or_create(
                         #     defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
-                        # Fund.objects.update_or_create(
+                        # fund.objects.update_or_create(
                         #     defaults=fund_defaults, **{'fund_code': fund_code})
                 except Exception as e:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(

@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 
-from apps.Fund.models import FundHistoricalNetWorthRanking, FundLog
+from apps.fund.models import FundHistoricalNetWorthRanking, FundLog
 
 logger = logging.getLogger("eastmoney")
 

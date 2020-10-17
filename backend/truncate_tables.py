@@ -11,9 +11,9 @@ def main():
     django.setup()
     from django.db import connection
     cursor = connection.cursor()
-    tables = ['Fund_fund', 'Fund_fundcompany', 'Fund_fundlog',
-              'Fund_fundhistoricalnetworth', 'Fund_fundmanager', 'Fund_fundranking',
-              'Fund_fundmanagerrelationship', 'Fund_fundtask']
+    tables = ['fund_fund', 'fund_fundcompany', 'fund_fundlog',
+              'fund_fundhistoricalnetworth', 'fund_fundmanager', 'fund_fundranking',
+              'fund_fundmanagerrelationship', 'fund_fundtask']
     for table in tables:
         cursor.execute("truncate {}".format(table))
         connection.commit()
