@@ -91,8 +91,6 @@ class EastMoneyFund:
         funds_json = copy.copy(response.json())
         if funds_json:
             all_fund = copy.copy(funds_json['datas'])
-            fund_objs = []
-            fund_history_objs = []
             for fund in all_fund:
                 defaults = {}
                 fund_defaults = {}
@@ -124,20 +122,11 @@ class EastMoneyFund:
                     fund_defaults['update_time'] = datetime.now()
                     defaults['update_time'] = datetime.now()
                     with transaction.atomic():
-                        exist_history_fund = FundRanking.objects.filter(
-                            **{'fund_code': fund_code, 'current_date': current_date})
-                        if exist_history_fund:
-                            exist_history_fund.update(**defaults)
-                        else:
-                            defaults.update(
-                                {'fund_code': fund_code, 'current_date': current_date})
-                            fund_history_objs.append(FundRanking(**defaults))
-                        exist_fund = Fund.objects.filter(**{'fund_code': fund_code})
-                        if exist_fund:
-                            exist_fund.update(**fund_defaults)
-                        else:
-                            fund_defaults.update({'fund_code': fund_code})
-                            fund_objs.append(Fund(**fund_defaults))
+                        FundRanking.objects.update_or_create(
+                            defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
+                    with transaction.atomic():
+                        Fund.objects.update_or_create(
+                            defaults=fund_defaults, **{'fund_code': fund_code})
                         # FundHistoricalNetWorthRanking.objects.update_or_create(
                         #     defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
                         # fund.objects.update_or_create(
@@ -145,9 +134,6 @@ class EastMoneyFund:
                 except Exception as e:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
                         defaults, fund_defaults, e))
-            with transaction.atomic():
-                Fund.objects.bulk_create(fund_objs)
-                FundRanking.objects.bulk_create(fund_history_objs)
             log_kwargs['end_time'] = datetime.now()
             log_kwargs['total_fund'] = funds_json['allNum']
             log_kwargs['stock_fund_num'] = funds_json['gpNum']
@@ -296,8 +282,7 @@ class EastMoneyFund:
                     defaults['redemption_status'] = history_net_worth['SHZT']
                     defaults['dividend_distribution'] = history_net_worth['FHSP']
                     defaults['update_time'] = datetime.now()
-                    kwargs = {'fund_code': fund_code,
-                              'current_date': current_date}
+                    kwargs = {'fund_code': fund_code, 'current_date': current_date}
                     with transaction.atomic():
                         exist_history_fund = FundHistoricalNetWorth.objects.filter(
                             **kwargs)
@@ -399,6 +384,7 @@ class EastMoneyFund:
                 }
                 with transaction.atomic():
                     Fund.objects.update_or_create(defaults=fund_defaults, **{'fund_code': fund_code})
+                with transaction.atomic():
                     FundRanking.objects.update_or_create(
                         defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
             except Exception as e:
@@ -446,6 +432,7 @@ class EastMoneyFund:
                 with transaction.atomic():
                     Fund.objects.update_or_create(defaults=fund_defaults,
                                                   **{'fund_code': fund_code})
+                with transaction.atomic():
                     FundRanking.objects.update_or_create(
                         defaults=defaults, **{'fund_code': fund_code,
                                               'current_date': current_date})
@@ -490,6 +477,7 @@ class EastMoneyFund:
                 with transaction.atomic():
                     Fund.objects.update_or_create(
                         defaults=fund_defaults, **{'fund_code': fund_code})
+                with transaction.atomic():
                     FundRanking.objects.update_or_create(
                         defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
             except Exception as e:
@@ -553,6 +541,7 @@ class EastMoneyFund:
                     with transaction.atomic():
                         Fund.objects.update_or_create(
                             defaults=fund_defaults, **{'fund_code': fund_code})
+                    with transaction.atomic():
                         FundRanking.objects.update_or_create(
                             defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
                 except Exception as e:
