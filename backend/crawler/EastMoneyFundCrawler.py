@@ -601,8 +601,6 @@ class EastMoneyFund:
                     if exist_relationship:
                         exist_relationship.update(**relationship)
                     else:
-                        relationship.fund_code = fund_code
-                        relationship.manager_id = manager_id
                         relationship.update(
                             **{'fund_code': fund_code, 'manager_id': manager_id, })
                         relationship_objs.append(
