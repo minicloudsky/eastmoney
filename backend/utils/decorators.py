@@ -2,7 +2,7 @@ import functools
 import logging
 from datetime import datetime
 
-from apps.Fund.models import FundLog, FundTask
+from apps.fund.models import FundLog, FundTask
 
 logger = logging.getLogger("easymoneyfundcrawler")
 

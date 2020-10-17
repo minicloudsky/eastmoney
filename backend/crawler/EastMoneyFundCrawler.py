@@ -6,10 +6,10 @@ from datetime import datetime
 from multiprocessing.dummy import Pool as ThreadPool
 from urllib.parse import urlencode
 from django.db import transaction
-
+from django.conf import settings
 import requests
 
-from apps.Fund.models import FundManagerRelationship, FundRanking, FundHistoricalNetWorth, FundLog, Fund, FundCompany, \
+from apps.fund.models import FundManagerRelationship, FundRanking, FundHistoricalNetWorth, FundLog, Fund, FundCompany, \
     FundManager, FundTask
 from utils.decorators import log
 
@@ -23,12 +23,13 @@ class EastMoneyFund:
     date = datetime.strftime(datetime.now(), '%Y-%m-%d')
     # 默认错误日期，当日期处理错误时候，将日期设置为 这个值
     default_error_date = datetime.strptime('1976-01-01', '%Y-%m-%d')
-    # 默认基金历史数据最大条数
-    default_history_fund_max_size = 50 * 365
+    crawl_mode = settings.CRAWL_MODE
+    # 默认基金历史数据最大条数,全量时爬取 50年数据，增量时爬取最近 10 天数据
+    default_history_fund_max_size = 50 * 365 if crawl_mode == 'ALL' else 10
     # 默认最大基金数
     default_max_fund_num = 100000
     # 默认线程数
-    thread_num = 65
+    thread_num = 75
     # 基金总数
     total_fund = 0
     mutex = threading.Lock()
@@ -50,20 +51,21 @@ class EastMoneyFund:
 
     def __init__(self):
         FundLog.objects.create(
-            name="开始爬取东方财富基金数据", start_time=datetime.now(), end_time=datetime.now())
-        # thread_list_first = [
-        #     threading.Thread(target=self.get_fund_company),
-        #     threading.Thread(target=self.parse_fund_ranking),
-        #     threading.Thread(target=self.parse_diy_fund_ranking),
-        #     threading.Thread(target=self.get_monetary_fund_ranking),
-        #     threading.Thread(target=self.get_asset_manage_fund_ranking),
-        #     threading.Thread(target=self.get_fbs_fund_ranking),
-        #     threading.Thread(target=self.get_hongkong_fund_ranking),
-        # ]
-        # for t in thread_list_first:
-        #     t.start()
-        # for t in thread_list_first:
-        #     t.join()
+            name="开始爬取, 当前爬取模式为 {}".format(self.crawl_mode),
+            start_time=datetime.now(), end_time=datetime.now())
+        thread_list_first = [
+            threading.Thread(target=self.get_fund_company),
+            threading.Thread(target=self.parse_fund_ranking),
+            threading.Thread(target=self.parse_diy_fund_ranking),
+            threading.Thread(target=self.get_monetary_fund_ranking),
+            threading.Thread(target=self.get_asset_manage_fund_ranking),
+            threading.Thread(target=self.get_fbs_fund_ranking),
+            threading.Thread(target=self.get_hongkong_fund_ranking),
+        ]
+        for t in thread_list_first:
+            t.start()
+        for t in thread_list_first:
+            t.join()
         thread_list_second = [
             threading.Thread(target=self.schedule_history_net_worth),
             # threading.Thread(target=self.single_thread_parse_history_net_worth),
@@ -138,7 +140,7 @@ class EastMoneyFund:
                             fund_objs.append(Fund(**fund_defaults))
                         # FundHistoricalNetWorthRanking.objects.update_or_create(
                         #     defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
-                        # Fund.objects.update_or_create(
+                        # fund.objects.update_or_create(
                         #     defaults=fund_defaults, **{'fund_code': fund_code})
                 except Exception as e:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
@@ -170,8 +172,6 @@ class EastMoneyFund:
         funds_json = copy.copy(response.json())
         if funds_json:
             all_fund = funds_json['datas']
-            fund_objs = []
-            fund_history_objs = []
             for fund in all_fund:
                 fund_defaults = {}
                 defaults = {}
@@ -198,28 +198,14 @@ class EastMoneyFund:
                     defaults['update_time'] = datetime.now()
                     fund_defaults['update_time'] = datetime.now()
                     with transaction.atomic():
-                        exist_history_fund = FundRanking.objects.filter(
-                            **{'fund_code': fund_code, 'current_date': current_date})
-                        if exist_history_fund:
-                            exist_history_fund.update(**defaults)
-                        else:
-                            defaults.update(
-                                {'fund_code': fund_code, 'current_date': current_date})
-                            fund_history_objs.append(
-                                FundRanking(**defaults))
-                        exist_fund = Fund.objects.filter(
-                            **{'fund_code': fund_code})
-                        if exist_fund:
-                            exist_fund.update(**fund_defaults)
-                        else:
-                            fund_defaults.update({'fund_code': fund_code})
-                            fund_objs.append(Fund(**fund_defaults))
+                        FundRanking.objects.update_or_create(
+                            defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
+                    with transaction.atomic():
+                        Fund.objects.update_or_create(
+                            defaults=fund_defaults, **{'fund_code': fund_code})
                 except Exception as e:
                     logger.warning("kwargs :{} fund_kwargs: {} error {}".format(
                         defaults, fund_defaults, e))
-            with transaction.atomic():
-                Fund.objects.bulk_create(fund_objs)
-                FundRanking.objects.bulk_create(fund_history_objs)
             log_kwargs['end_time'] = datetime.now()
             log_kwargs['total_fund'] = funds_json['allNum']
             log_kwargs['stock_fund_num'] = funds_json['gpNum']
@@ -601,8 +587,6 @@ class EastMoneyFund:
                     if exist_relationship:
                         exist_relationship.update(**relationship)
                     else:
-                        relationship.fund_code = fund_code
-                        relationship.manager_id = manager_id
                         relationship.update(
                             **{'fund_code': fund_code, 'manager_id': manager_id, })
                         relationship_objs.append(
