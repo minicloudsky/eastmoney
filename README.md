@@ -72,7 +72,7 @@ sh bin/start_server.sh
 - 登录服务器，执行 `docker run -d  -it -p 3000:3000 --name metabase metabase/metabase`.这里我们把metabase部署在 3000端口
 - 打开 your_host:3000,设置下数据库连接，然后写 sql 就可以做数据可视化了，以下是我自己做的简单 demo
 
-![](img/1.png)
-![](img/2.png)
-![](img/3.png)
+![](https://github.com/minicloudsky/EastMoneySpider/img/1.png)
+![](https://github.com/minicloudsky/EastMoneySpider/img/2.png)
+![](https://github.com/minicloudsky/EastMoneySpider/img/3.png)
 ### metabase 官方文档 [metabase](https://www.metabase.com/docs/latest/getting-started.html)
