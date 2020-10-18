@@ -1,6 +1,8 @@
 # EastMoneySpider
 
 东方财富、天天基金股票基金证券数据爬虫、数据分析可视化
+### first of all, 本项目不构成任何投资建议，仅做技术学习用途,投资有风险，入市需谨慎！！！
+### 如有侵权请联系我删除
 
 ### Usage:
 
@@ -64,3 +66,13 @@ cd backend
 sh bin/start_server.sh
 
 ```
+### 数据可视化
+- 简单的数据可视化可以用 [metabase](https://www.metabase.com/docs/latest/getting-started.html),根据需要自己写 `sql`或者设置过滤聚合条件就好了
+- `metabase` docker 部署
+- 登录服务器，执行 `docker run -d  -it -p 3000:3000 --name metabase metabase/metabase`.这里我们把metabase部署在 3000端口
+- 打开 your_host:3000,设置下数据库连接，然后写 sql 就可以做数据可视化了，以下是我自己做的简单 demo
+
+![](img\1.png)
+![](img\2.png)
+![](img\3.png)
+### metabase 官方文档 [metabase](https://www.metabase.com/docs/latest/getting-started.html)
