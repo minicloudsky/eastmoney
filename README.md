@@ -6,7 +6,7 @@
 
 ### Usage:
 
-`git clone https://github.com/minicloudsky/EastMoneySpider.git`
+`git clone https://github.com/minicloudsky/EastMoney.git`
 
 ### 创建 python3 虚拟环境
 ```bash
@@ -18,7 +18,7 @@ source venv/bin/activate
 ### 修改数据库,改为你自己的数据库
 
 
-`vim backend/eastmoneyspider/settings.py`
+`vim backend/eastmoney/settings.py`
 
 ```python
 DATABASES = {

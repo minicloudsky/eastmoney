@@ -7,7 +7,7 @@ import django
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'eastmoneyspider.settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'eastmoney.settings')
     django.setup()
     from crawler.EastMoneyFundCrawler import EastMoneyFund
     eastmoneyfund = EastMoneyFund()
