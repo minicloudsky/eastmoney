@@ -29,7 +29,7 @@ class EastMoneyFund:
     # 默认最大基金数
     default_max_fund_num = 100000
     # 默认线程数
-    thread_num = 75
+    thread_num = 55
     # 基金总数
     total_fund = 0
     mutex = threading.Lock()
@@ -294,8 +294,10 @@ class EastMoneyFund:
                 except Exception as e:
                     logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {} exception : {}".format(
                         datetime.now(), fund_code, defaults, e))
+            time.sleep(2)
             with transaction.atomic():
                 FundHistoricalNetWorth.objects.bulk_create(fund_history_obj_list)
+            time.sleep(5)
             self.total_fund -= 1
             crawl_end_time = time.time()
             self.crawl_history_task.name = "多线程爬取基金历史净值,当前线程 {} -已爬取 {} 历史净值，剩余基金数 {},本次用时 {} s,预计爬完还需要 {} hour".format(
