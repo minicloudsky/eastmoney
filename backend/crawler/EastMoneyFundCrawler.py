@@ -62,6 +62,9 @@ class EastMoneyFund:
         FundLog.objects.create(
             name="开始爬取, 当前爬取模式为 {}".format(self.crawl_mode),
             start_time=datetime.now(), end_time=datetime.now())
+        FundTask.objects.create(
+            func='', name="开始爬取, 当前爬取模式为 {}".format(self.crawl_mode),
+            status='start')
         thread_list_first = [
             threading.Thread(target=self.get_fund_company),
             threading.Thread(target=self.parse_fund_ranking),
@@ -276,7 +279,10 @@ class EastMoneyFund:
         request_url = self.history_net_worth_url + urlencode(params)
         response = self.get(request_url)
         history_net_worth_json = copy.copy(response.json())
-        history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
+        if history_net_worth_json and history_net_worth_json.get('Data') and history_net_worth_json.get('Data').get('LSJZList'):
+            history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
+        else:
+            history_net_worths = None
         if history_net_worth_json and history_net_worths:
             fund_history_obj_list = []
             for history_net_worth in history_net_worths:
