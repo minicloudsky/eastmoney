@@ -9,19 +9,11 @@ from django.db import transaction
 from django.conf import settings
 import requests
 
-from redis import Redis
 from apps.fund.models import FundManagerRelationship, FundRanking, FundHistoricalNetWorth, FundLog, Fund, FundCompany, \
     FundManager, FundTask
 from utils.decorators import log
 
 logger = logging.getLogger("easymoneyfundcrawler")
-
-def get_redis_conn():
-    host = 'huaweicloud.yawujia.cn'
-    port = 6379
-    password = ''
-    conn = Redis(host=host,port=port,password=password)
-    return conn
 
 
 # 东方财富基金
@@ -41,7 +33,6 @@ class EastMoneyFund:
     # 基金总数
     total_fund = 0
     mutex = threading.Lock()
-    redis = get_redis_conn()
     crawl_history_task = None
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
@@ -229,9 +220,6 @@ class EastMoneyFund:
                 fund.fund_code for fund in funds if fund.fund_type != 'HK']
         logger.info("total funds: {}".format(len(fund_codes)))
         self.total_fund = len(fund_codes)
-        for fund_code in fund_codes:
-            self.redis.lpush("eastmoney", fund_code)
-        # self.redis.set("fund_left", len(fund_codes))
         self.crawl_history_task = FundTask.objects.create(
             func='multi_thread_parse_history_net_worth', name="多线程爬取基金历史净值", status='running')
         pool = ThreadPool(self.thread_num)
@@ -279,7 +267,8 @@ class EastMoneyFund:
         request_url = self.history_net_worth_url + urlencode(params)
         response = self.get(request_url)
         history_net_worth_json = copy.copy(response.json())
-        if history_net_worth_json and history_net_worth_json.get('Data') and history_net_worth_json.get('Data').get('LSJZList'):
+        if history_net_worth_json and history_net_worth_json.get('Data') and history_net_worth_json.get('Data').get(
+                'LSJZList'):
             history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
         else:
             history_net_worths = None
@@ -318,9 +307,9 @@ class EastMoneyFund:
         self.total_fund -= 1
         crawl_end_time = time.time()
         self.crawl_history_task.name = "多线程爬取基金历史净值,当前线程 {} -已爬取 {} 历史净值，剩余基金数 {},本次用时 {} s,预计爬完还需要 {} hour".format(
-                threading.current_thread().getName(),
-                fund_code, self.total_fund, crawl_end_time - crawl_start_time,
-                                            (crawl_end_time - crawl_start_time) * self.total_fund / 3600)
+            threading.current_thread().getName(),
+            fund_code, self.total_fund, crawl_end_time - crawl_start_time,
+                                        (crawl_end_time - crawl_start_time) * self.total_fund / 3600)
         self.crawl_history_task.update_time = datetime.now()
         with transaction.atomic():
             self.crawl_history_task.save()
