@@ -4,6 +4,7 @@
 ### first of all, 本项目不构成任何投资建议，仅做技术学习用途,投资有风险，入市需谨慎！！！
 ### 如有侵权请联系我删除
 ### 在线体验，查看 metabase 数据库 [http://huaweicloud.yawujia.cn:6100/](http://huaweicloud.yawujia.cn:6100/)
+### 账号: admin@admin.com 密码: admin123
 ### Usage:
 
 `git clone https://github.com/minicloudsky/EastMoney.git`
