@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PROJECT_PATH=/home/.jywcode/eastmoneyspider/backend
+PROJECT_PATH=$(cd "$(dirname "$0")"; cd ../;pwd)
 # shellcheck disable=SC2164
 cd $PROJECT_PATH
 source venv/bin/activate

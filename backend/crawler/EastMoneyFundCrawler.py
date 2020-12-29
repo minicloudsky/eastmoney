@@ -618,7 +618,7 @@ class EastMoneyFund:
             request_url = self.nodejs_server_url + \
                           'fund_type' + '&fund_type={}'.format(fund_type)
             response = self.get(request_url)
-            if not response.json()['datas']:
+            if not response.json() or not response.json()['datas']:
                 continue
             funds = response.json()['datas']
             for fund in funds:
