@@ -24,8 +24,8 @@ class EastMoneyFund:
     # 默认错误日期，当日期处理错误时候，将日期设置为 这个值
     default_error_date = datetime.strptime('1976-01-01', '%Y-%m-%d')
     crawl_mode = settings.CRAWL_MODE
-    # 默认基金历史数据最大条数,全量时爬取 50年数据，增量时爬取最近 10 天数据
-    default_history_fund_max_size = 50 * 365 if crawl_mode == 'ALL' else 10
+    # 默认基金历史数据最大条数,全量时爬取 50年数据，增量时爬取最近 30 天数据
+    default_history_fund_max_size = 50 * 365 if crawl_mode == 'ALL' else 30
     # 默认最大基金数
     default_max_fund_num = 100000
     # 默认线程数
@@ -46,7 +46,7 @@ class EastMoneyFund:
     monetary_fund_url = 'http://api.fund.eastmoney.com/FundRank/GetHbRankList?intCompany=0&MinsgType=&IsSale=0&strSortCol=SYL_Y&orderType=desc&pageIndex=1&pageSize=500000&_=1601519558625'
     asset_manage_fund_url = 'http://api.fund.eastmoney.com/FundRank/GetLcRankList?intCompany=0&MinsgType=undefined' \
                             '&IsSale=0&strSortCol=SYL_Z&orderType=desc&pageIndex={}&pageSize={}&FBQ='.format(
-        1, 500000)
+                                1, 500000)
     overseas_fund_url = 'http://overseas.1234567.com.cn/overseasapi/OpenApiHander.ashx?api=HKFDApi&m=MethodFundList&action=1&pageindex={}&pagesize={}&dy=1&date1=1990-10-02&date2={}&sortfield=W&sorttype=-1&isbuy=0'
 
     def __init__(self):
@@ -269,7 +269,8 @@ class EastMoneyFund:
         history_net_worth_json = copy.copy(response.json())
         if history_net_worth_json and history_net_worth_json.get('Data') and history_net_worth_json.get('Data').get(
                 'LSJZList'):
-            history_net_worths = history_net_worth_json.get('Data').get('LSJZList')
+            history_net_worths = history_net_worth_json.get(
+                'Data').get('LSJZList')
         else:
             history_net_worths = None
         if history_net_worth_json and history_net_worths:
@@ -288,7 +289,8 @@ class EastMoneyFund:
                     defaults['redemption_status'] = history_net_worth['SHZT']
                     defaults['dividend_distribution'] = history_net_worth['FHSP']
                     defaults['update_time'] = datetime.now()
-                    kwargs = {'fund_code': fund_code, 'current_date': current_date}
+                    kwargs = {'fund_code': fund_code,
+                              'current_date': current_date}
                     with transaction.atomic():
                         exist_history_fund = FundHistoricalNetWorth.objects.filter(
                             **kwargs)
@@ -296,20 +298,22 @@ class EastMoneyFund:
                             exist_history_fund.update(**defaults)
                         else:
                             defaults.update(kwargs)
-                            fund_history_obj_list.append(FundHistoricalNetWorth(**defaults))
+                            fund_history_obj_list.append(
+                                FundHistoricalNetWorth(**defaults))
                 except Exception as e:
                     logger.warning("{} get history_net_worth error ! fund_code: {} kwargs: {} exception : {}".format(
                         datetime.now(), fund_code, defaults, e))
             time.sleep(1)
             with transaction.atomic():
-                FundHistoricalNetWorth.objects.bulk_create(fund_history_obj_list)
+                FundHistoricalNetWorth.objects.bulk_create(
+                    fund_history_obj_list)
             time.sleep(1)
         self.total_fund -= 1
         crawl_end_time = time.time()
         self.crawl_history_task.name = "多线程爬取基金历史净值,当前线程 {} -已爬取 {} 历史净值，剩余基金数 {},本次用时 {} s,预计爬完还需要 {} hour".format(
             threading.current_thread().getName(),
             fund_code, self.total_fund, crawl_end_time - crawl_start_time,
-                                        (crawl_end_time - crawl_start_time) * self.total_fund / 3600)
+            (crawl_end_time - crawl_start_time) * self.total_fund / 3600)
         self.crawl_history_task.update_time = datetime.now()
         with transaction.atomic():
             self.crawl_history_task.save()
@@ -391,7 +395,8 @@ class EastMoneyFund:
                     'update_time': datetime.now(),
                 }
                 with transaction.atomic():
-                    Fund.objects.update_or_create(defaults=fund_defaults, **{'fund_code': fund_code})
+                    Fund.objects.update_or_create(
+                        defaults=fund_defaults, **{'fund_code': fund_code})
                 with transaction.atomic():
                     FundRanking.objects.update_or_create(
                         defaults=defaults, **{'fund_code': fund_code, 'current_date': current_date})
@@ -506,7 +511,7 @@ class EastMoneyFund:
             logger.warning("Exception in get hk fund {}".format(e))
             return
         total_page = datas['TotalCount'] / 50 + \
-                     1 if datas['TotalCount'] else 10
+            1 if datas['TotalCount'] else 10
         for page in range(int(total_page) + 1):
             response = self.get(
                 self.overseas_fund_url.format(page, 50, self.date))
@@ -616,7 +621,7 @@ class EastMoneyFund:
                       'zq': '债券型', 'zs': '指数型', 'qdii': 'QDII', 'fof': 'FOF'}
         for fund_type, type_name in fund_types.items():
             request_url = self.nodejs_server_url + \
-                          'fund_type' + '&fund_type={}'.format(fund_type)
+                'fund_type' + '&fund_type={}'.format(fund_type)
             response = self.get(request_url)
             if not response.json() or not response.json()['datas']:
                 continue
