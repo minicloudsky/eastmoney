@@ -14,7 +14,11 @@ import platform
 from pathlib import Path
 import os
 import sys
-from utils.config import get_db_config, get_crawl_mode
+from utils.config import  get_crawl_mode
+
+# mysql 配置
+import pymysql
+pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -85,16 +89,16 @@ WSGI_APPLICATION = 'eastmoney.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 # get database config
-DB_CONFIG = get_db_config()
+#DB_CONFIG = get_db_config()
 # crawl mode
 CRAWL_MODE = get_crawl_mode()
 DATABASES = {
     "default": {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': DB_CONFIG['host'],
-        'PORT': DB_CONFIG['port'],
-        'USER': DB_CONFIG['user'],
-        'PASSWORD': DB_CONFIG['password'],
+        'HOST': 'db',
+        'PORT': 3306,
+        'USER': 'root',
+        'PASSWORD': 'root',
         'NAME': 'eastmoney'
     }
 }
