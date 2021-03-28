@@ -4,42 +4,28 @@ services:
     build:
       context: backend
     command: python run_spider.py
-    environment:
-      - DATABASE_DB=eastmoney
-      - DATABASE_USER=root
-      - DATABASE_PASSWORD=/run/secrets/db-password
-      - DATABASE_HOST=db
     ports:
       - 8000:8000
-    secrets:
-      - db-password
     restart: on-failure
-    volumes:
-      - ./backend:/code
+    command:
+      - /bin/sh
+      - -c
+      - |
+        chmod 777 /code/entrypoint.sh 
+        /bin/sh /code/entrypoint.sh
     depends_on:
       - db
   db:
-    image: mysql
-    command: '--default-authentication-plugin=mysql_native_password'
-    restart: always
-    secrets:
-      - db-password
-    volumes:
-      - db-data:/var/lib/mysql
+    image: "mysql"
+    ports:
+      - "3306:3306"
     environment:
-      - MYSQL_DATABASE=eastmoney
-      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db-password
+      MYSQL_DATABASE: eastmoney
+      MYSQL_ROOT_PASSWORD: root
+    security_opt:
+      - seccomp:unconfined
   crawler_node_server:
     build:
       context: crawler_node_server
     ports:
       - 3000:3000
-    volumes:
-      - ./crawler_node_server:/code
-      - /code/node_modules
-volumes:
-  back-notused:
-  db-data:
-secrets:
-  db-password:
-    file: db/password.txt
