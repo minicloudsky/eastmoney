@@ -25,7 +25,7 @@ class EastMoneyFund:
     default_error_date = datetime.strptime('1976-01-01', '%Y-%m-%d')
     crawl_mode = settings.CRAWL_MODE
     # 默认基金历史数据最大条数,全量时爬取 50年数据，增量时爬取最近 30 天数据
-    default_history_fund_max_size = 50 * 365 if crawl_mode == 'ALL' else 30
+    default_history_fund_max_size = 50 * 365 if crawl_mode == 'ALL' else 300
     # 默认最大基金数
     default_max_fund_num = 100000
     # 默认线程数
