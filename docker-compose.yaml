@@ -22,8 +22,8 @@ services:
     environment:
       MYSQL_DATABASE: eastmoney
       MYSQL_ROOT_PASSWORD: root
-    security_opt:
-      - seccomp:unconfined
+      #security_opt:
+      #- seccomp:unconfined
   crawler_node_server:
     build:
       context: crawler_node_server
